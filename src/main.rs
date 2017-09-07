@@ -1,7 +1,5 @@
-#![feature(read_initializer)]
-
-#[macro_use]
 extern crate log;
+extern crate scan_rs;
 
 use std::env;
 use std::fs::File;
@@ -9,9 +7,7 @@ use std::io::{self, Write};
 
 use log::{LogLevel, LogLevelFilter, LogMetadata, LogRecord, SetLoggerError};
 
-mod scan;
-
-use scan::Scanner;
+use scan_rs::Scanner;
 
 fn main() {
     init_logger().unwrap();

@@ -1,8 +1,10 @@
 //! Adaptation/port of [Go scanner](http://tip.golang.org/pkg/bufio/#Scanner).
 use std::io::{self, BufRead, Read};
+use std::result;
 
-// TODO Custom Result
-// TODO Make `scan_unshifted` return a Result
+use error::Error;
+pub type Result<T> = result::Result<T, Error>;
+
 // TODO Make `scan_unshifte`/split function a parameter ?
 // TODO Result<Option<&[u8]>> or Option<Result<&[u8]>>
 
@@ -55,23 +57,23 @@ impl<R: Read> Scanner<R> {
     // The function is never called with an empty data slice unless at EOF.
     // If `eof` is true, however, data may be non-empty and,
     // as always, holds unprocessed text.
-    fn scan_unshifted(data: &[u8], eof: bool) -> (Option<&[u8]>, usize) {
+    fn scan_unshifted(data: &[u8], eof: bool) -> Result<(Option<&[u8]>, usize)> {
         debug!(target: "scanner", "scan_unshifted");
-        if eof && data.len() == 0 {
-            return (None, 0);
+        if eof && data.is_empty() {
+            return Ok((None, 0));
         }
         let iter = data.iter().enumerate();
         for (i, val) in iter {
             if *val == b'\n' {
-                return (Some(&data[..i + 1]), i + 1);
+                return Ok((Some(&data[..i + 1]), i + 1));
             }
         }
         // If we're at EOF, we have a final field. Return it.
         if eof {
-            return (Some(data), data.len());
+            return Ok((Some(data), data.len()));
         }
         // Request more data.
-        (None, 0)
+        Ok((None, 0))
     }
 }
 
@@ -79,8 +81,8 @@ impl<R: Read> Scanner<R> {
     // Advance the Scanner to next token.
     // Return the token as a byte slice.
     // Return `None` when the end of the input is reached.
-    // Return any error that occurs while reading the input. (TODO impl our own Result)
-    pub fn scan(&mut self) -> io::Result<Option<&[u8]>> {
+    // Return any error that occurs while reading the input.
+    pub fn scan(&mut self) -> Result<Option<&[u8]>> {
         use std::mem;
         debug!(target: "scanner", "scan");
         // Loop until we have a token.
@@ -89,7 +91,7 @@ impl<R: Read> Scanner<R> {
             if self.cap > self.pos || self.eof {
                 // TODO: I don't know how to make the borrow checker happy!
                 let data = unsafe { mem::transmute(&self.buf[self.pos..self.cap]) };
-                match Self::scan_unshifted(data, self.eof) {
+                match Self::scan_unshifted(data, self.eof)? {
                     (None, 0) => {}
                     (None, amt) => {
                         self.consume(amt);
