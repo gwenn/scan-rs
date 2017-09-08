@@ -7,7 +7,7 @@ use std::io::{self, Write};
 
 use log::{LogLevel, LogLevelFilter, LogMetadata, LogRecord, SetLoggerError};
 
-use scan_rs::Scanner;
+use scan_rs::{scan_lines, Scanner};
 
 fn main() {
     init_logger().unwrap();
@@ -18,12 +18,15 @@ fn main() {
     let arg = env::args().last().expect("One argument expected");
     println!("{:?}", arg);
     let f = File::open(arg).unwrap();
-    let mut s = Scanner::new(f);
+    let mut s = Scanner::new(f, scan_lines);
     loop {
         let field = s.scan().unwrap();
         match field {
             None => break,
-            Some(data) => handle.write(data).unwrap(),
+            Some(data) => {
+                handle.write_all(data).unwrap();
+                handle.write(b"\n").unwrap()
+            }
         };
     }
 }

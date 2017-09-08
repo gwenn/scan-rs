@@ -2,6 +2,8 @@ use std::error;
 use std::fmt;
 use std::io;
 
+use scan::ScanError;
+
 /// Enum listing possible errors from Scanner.
 #[derive(Debug)]
 pub enum Error {
@@ -30,3 +32,5 @@ impl From<io::Error> for Error {
         Error::Io(err)
     }
 }
+
+impl ScanError for Error {}

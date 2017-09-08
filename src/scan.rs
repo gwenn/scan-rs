@@ -1,11 +1,25 @@
 //! Adaptation/port of [Go scanner](http://tip.golang.org/pkg/bufio/#Scanner).
+use std::convert::From;
+use std::fmt;
+use std::error::Error;
 use std::io::{self, BufRead, Read};
-use std::result;
+use std::result::Result;
 
-use error::Error;
-pub type Result<T> = result::Result<T, Error>;
+pub trait ScanError: Error + From<io::Error> {}
 
-// TODO Make `scan_unshifte`/split function a parameter ?
+// The arguments are an initial substring of the remaining unprocessed
+// data and a flag, `eof`, that reports whether the Reader has no more data
+// to give.
+//
+// If the returned error is non-nil, scanning stops and the error
+// is returned to the client.
+//
+// The function is never called with an empty data slice unless at EOF.
+// If `eof` is true, however, data may be non-empty and,
+// as always, holds unprocessed text.
+pub type FnSplit<E: ScanError> = fn(data: &[u8], eof: bool)
+    -> Result<(Option<&[u8]>, usize), E>;
+
 // TODO Result<Option<&[u8]>> or Option<Result<&[u8]>>
 
 // Like a `BufReader` but with a growable buffer.
@@ -15,20 +29,20 @@ pub type Result<T> = result::Result<T, Error>;
 // Scanning stops unrecoverably at EOF, the first I/O error, or a token too
 // large to fit in the buffer. When a scan stops, the reader may have
 // advanced arbitrarily far past the last token.
-#[derive(Debug)]
-pub struct Scanner<R: Read> {
-    inner: R,     // The reader provided by the client.
-    buf: Vec<u8>, // Buffer used as argument to split.
-    pos: usize,   // First non-processed byte in buf.
-    cap: usize,   // End of data in buf.
+pub struct Scanner<R: Read, E: ScanError> {
+    inner: R,          // The reader provided by the client.
+    split: FnSplit<E>, // The function to tokenize the input.
+    buf: Vec<u8>,      // Buffer used as argument to split.
+    pos: usize,        // First non-processed byte in buf.
+    cap: usize,        // End of data in buf.
     eof: bool,
 }
 
-impl<R: Read> Scanner<R> {
-    pub fn new(inner: R) -> Scanner<R> {
-        Self::with_capacity(inner, 4096)
+impl<R: Read, E: ScanError> Scanner<R, E> {
+    pub fn new(inner: R, split: FnSplit<E>) -> Scanner<R, E> {
+        Self::with_capacity(inner, split, 4096)
     }
-    fn with_capacity(inner: R, capacity: usize) -> Scanner<R> {
+    fn with_capacity(inner: R, split: FnSplit<E>, capacity: usize) -> Scanner<R, E> {
         let mut buf = Vec::with_capacity(capacity);
         unsafe {
             buf.set_len(capacity);
@@ -36,6 +50,7 @@ impl<R: Read> Scanner<R> {
         }
         Scanner {
             inner: inner,
+            split: split,
             buf: buf,
             pos: 0,
             cap: 0,
@@ -44,45 +59,12 @@ impl<R: Read> Scanner<R> {
     }
 }
 
-impl<R: Read> Scanner<R> {
-    // The function to tokenize the input.
-    //
-    // The arguments are an initial substring of the remaining unprocessed
-    // data and a flag, `eof`, that reports whether the Reader has no more data
-    // to give.
-    //
-    // If the returned error is non-nil, scanning stops and the error
-    // is returned to the client.
-    //
-    // The function is never called with an empty data slice unless at EOF.
-    // If `eof` is true, however, data may be non-empty and,
-    // as always, holds unprocessed text.
-    fn scan_unshifted(data: &[u8], eof: bool) -> Result<(Option<&[u8]>, usize)> {
-        debug!(target: "scanner", "scan_unshifted");
-        if eof && data.is_empty() {
-            return Ok((None, 0));
-        }
-        let iter = data.iter().enumerate();
-        for (i, val) in iter {
-            if *val == b'\n' {
-                return Ok((Some(&data[..i + 1]), i + 1));
-            }
-        }
-        // If we're at EOF, we have a final field. Return it.
-        if eof {
-            return Ok((Some(data), data.len()));
-        }
-        // Request more data.
-        Ok((None, 0))
-    }
-}
-
-impl<R: Read> Scanner<R> {
+impl<R: Read, E: ScanError> Scanner<R, E> {
     // Advance the Scanner to next token.
     // Return the token as a byte slice.
     // Return `None` when the end of the input is reached.
     // Return any error that occurs while reading the input.
-    pub fn scan(&mut self) -> Result<Option<&[u8]>> {
+    pub fn scan(&mut self) -> Result<Option<&[u8]>, E> {
         use std::mem;
         debug!(target: "scanner", "scan");
         // Loop until we have a token.
@@ -91,7 +73,7 @@ impl<R: Read> Scanner<R> {
             if self.cap > self.pos || self.eof {
                 // TODO: I don't know how to make the borrow checker happy!
                 let data = unsafe { mem::transmute(&self.buf[self.pos..self.cap]) };
-                match Self::scan_unshifted(data, self.eof)? {
+                match (self.split)(data, self.eof)? {
                     (None, 0) => {}
                     (None, amt) => {
                         self.consume(amt);
@@ -117,7 +99,7 @@ impl<R: Read> Scanner<R> {
     }
 }
 
-impl<R: Read> BufRead for Scanner<R> {
+impl<R: Read, E: ScanError> BufRead for Scanner<R, E> {
     fn fill_buf(&mut self) -> io::Result<&[u8]> {
         debug!(target: "scanner", "fill_buf");
         // First, shift data to beginning of buffer if there's lots of empty space
@@ -177,7 +159,7 @@ impl<R: Read> BufRead for Scanner<R> {
     }
 }
 
-impl<R: Read> Read for Scanner<R> {
+impl<R: Read, E: ScanError> Read for Scanner<R, E> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let nread = {
             let mut rem = self.fill_buf()?;
@@ -185,5 +167,16 @@ impl<R: Read> Read for Scanner<R> {
         };
         self.consume(nread);
         Ok(nread)
+    }
+}
+
+impl<R: Read, E: ScanError> fmt::Debug for Scanner<R, E> {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        f.debug_struct("Scanner")
+            .field("buf", &self.buf)
+            .field("pos", &self.pos)
+            .field("cap", &self.cap)
+            .field("eof", &self.eof)
+            .finish()
     }
 }
