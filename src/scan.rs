@@ -36,6 +36,8 @@ pub struct Scanner<R: Read, E: ScanError> {
     pos: usize,        // First non-processed byte in buf.
     cap: usize,        // End of data in buf.
     eof: bool,
+    line: u32,   // current line number
+    column: u32, // current column number (byte offset, not char offset)
 }
 
 impl<R: Read, E: ScanError> Scanner<R, E> {
@@ -55,6 +57,8 @@ impl<R: Read, E: ScanError> Scanner<R, E> {
             pos: 0,
             cap: 0,
             eof: false,
+            line: 1,
+            column: 1,
         }
     }
 }
@@ -66,7 +70,7 @@ impl<R: Read, E: ScanError> Scanner<R, E> {
     // Return any error that occurs while reading the input.
     pub fn scan(&mut self) -> Result<Option<&[u8]>, E> {
         use std::mem;
-        debug!(target: "scanner", "scan");
+        debug!(target: "scanner", "scan(line: {}, column: {})", self.line, self.column);
         // Loop until we have a token.
         loop {
             // See if we can get a token with what we already have.
@@ -96,6 +100,16 @@ impl<R: Read, E: ScanError> Scanner<R, E> {
             // Must read more data.
             self.fill_buf()?;
         }
+    }
+
+    // Current line number
+    pub fn line(&self) -> u32 {
+        self.line
+    }
+
+    // Current column number (byte offset, not char offset)
+    pub fn column(&self) -> u32 {
+        self.column
     }
 }
 
@@ -155,6 +169,15 @@ impl<R: Read, E: ScanError> BufRead for Scanner<R, E> {
     fn consume(&mut self, amt: usize) {
         debug!(target: "scanner", "comsume({})", amt);
         assert!(self.pos + amt <= self.cap);
+        for byte in &self.buf[self.pos..self.pos + amt] {
+            // TODO pos+amt+1 ?
+            if *byte == b'\n' {
+                self.line += 1;
+                self.column = 1;
+            } else {
+                self.column += 1;
+            }
+        }
         self.pos += amt;
     }
 }
@@ -177,6 +200,8 @@ impl<R: Read, E: ScanError> fmt::Debug for Scanner<R, E> {
             .field("pos", &self.pos)
             .field("cap", &self.cap)
             .field("eof", &self.eof)
+            .field("line", &self.line)
+            .field("column", &self.column)
             .finish()
     }
 }

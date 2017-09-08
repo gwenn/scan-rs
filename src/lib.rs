@@ -35,5 +35,5 @@ fn drop_cr(data: &[u8]) -> &[u8] {
     if !data.is_empty() && data[data.len() - 1] == b'\r' {
         return &data[..data.len() - 1];
     }
-    return data;
+    data
 }
