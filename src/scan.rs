@@ -5,20 +5,26 @@ use std::error::Error;
 use std::io::{self, BufRead, Read};
 use std::result::Result;
 
-pub trait ScanError: Error + From<io::Error> {}
+pub trait ScanError: Error + From<io::Error> + Sized {}
 
-/// The arguments are an initial substring of the remaining unprocessed
-/// data and a flag, `eof`, that reports whether the Reader has no more data
-/// to give.
-///
-/// If the returned error is non-nil, scanning stops and the error
-/// is returned to the client.
-///
-/// The function is never called with an empty data slice unless at EOF.
-/// If `eof` is true, however, data may be non-empty and,
-/// as always, holds unprocessed text.
-pub type FnSplit<E: ScanError> = fn(data: &[u8], eof: bool)
-    -> Result<(Option<&[u8]>, usize), E>;
+pub trait Splitter: Sized {
+    type E: ScanError;
+    /// The arguments are an initial substring of the remaining unprocessed
+    /// data and a flag, `eof`, that reports whether the Reader has no more data
+    /// to give.
+    ///
+    /// If the returned error is non-nil, scanning stops and the error
+    /// is returned to the client.
+    ///
+    /// The function is never called with an empty data slice unless at EOF.
+    /// If `eof` is true, however, data may be non-empty and,
+    /// as always, holds unprocessed text.
+    fn split<'input>(
+        &self,
+        data: &'input [u8],
+        eof: bool,
+    ) -> Result<(Option<&'input [u8]>, usize), Self::E>;
+}
 
 // TODO Result<Option<&[u8]>> or Option<Result<&[u8]>>
 
@@ -29,11 +35,11 @@ pub type FnSplit<E: ScanError> = fn(data: &[u8], eof: bool)
 /// Scanning stops unrecoverably at EOF, the first I/O error, or a token too
 /// large to fit in the buffer. When a scan stops, the reader may have
 /// advanced arbitrarily far past the last token.
-pub struct Scanner<R: Read, E: ScanError> {
+pub struct Scanner<R: Read, E: ScanError, S: Splitter<E = E>> {
     /// The reader provided by the client.
     inner: R,
     /// The function to tokenize the input.
-    split: FnSplit<E>,
+    splitter: S,
     /// Buffer used as argument to split.
     buf: Vec<u8>,
     /// First non-processed byte in buf.
@@ -47,11 +53,11 @@ pub struct Scanner<R: Read, E: ScanError> {
     column: u32,
 }
 
-impl<R: Read, E: ScanError> Scanner<R, E> {
-    pub fn new(inner: R, split: FnSplit<E>) -> Scanner<R, E> {
-        Self::with_capacity(inner, split, 4096)
+impl<R: Read, E: ScanError, S: Splitter<E = E>> Scanner<R, E, S> {
+    pub fn new(inner: R, splitter: S) -> Scanner<R, E, S> {
+        Self::with_capacity(inner, splitter, 4096)
     }
-    fn with_capacity(inner: R, split: FnSplit<E>, capacity: usize) -> Scanner<R, E> {
+    fn with_capacity(inner: R, splitter: S, capacity: usize) -> Scanner<R, E, S> {
         let mut buf = Vec::with_capacity(capacity);
         unsafe {
             buf.set_len(capacity);
@@ -59,7 +65,7 @@ impl<R: Read, E: ScanError> Scanner<R, E> {
         }
         Scanner {
             inner: inner,
-            split: split,
+            splitter: splitter,
             buf: buf,
             pos: 0,
             cap: 0,
@@ -70,7 +76,7 @@ impl<R: Read, E: ScanError> Scanner<R, E> {
     }
 }
 
-impl<R: Read, E: ScanError> Scanner<R, E> {
+impl<R: Read, E: ScanError, S: Splitter<E = E>> Scanner<R, E, S> {
     /// Advance the Scanner to next token.
     /// Return the token as a byte slice.
     /// Return `None` when the end of the input is reached.
@@ -84,7 +90,7 @@ impl<R: Read, E: ScanError> Scanner<R, E> {
             if self.cap > self.pos || self.eof {
                 // TODO: I don't know how to make the borrow checker happy!
                 let data = unsafe { mem::transmute(&self.buf[self.pos..self.cap]) };
-                match (self.split)(data, self.eof)? {
+                match self.splitter.split(data, self.eof)? {
                     (None, 0) => {}
                     (None, amt) => {
                         self.consume(amt);
@@ -120,7 +126,7 @@ impl<R: Read, E: ScanError> Scanner<R, E> {
     }
 }
 
-impl<R: Read, E: ScanError> BufRead for Scanner<R, E> {
+impl<R: Read, E: ScanError, S: Splitter<E = E>> BufRead for Scanner<R, E, S> {
     fn fill_buf(&mut self) -> io::Result<&[u8]> {
         debug!(target: "scanner", "fill_buf");
         // First, shift data to beginning of buffer if there's lots of empty space
@@ -188,7 +194,7 @@ impl<R: Read, E: ScanError> BufRead for Scanner<R, E> {
     }
 }
 
-impl<R: Read, E: ScanError> Read for Scanner<R, E> {
+impl<R: Read, E: ScanError, S: Splitter<E = E>> Read for Scanner<R, E, S> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let nread = {
             let mut rem = self.fill_buf()?;
@@ -199,7 +205,7 @@ impl<R: Read, E: ScanError> Read for Scanner<R, E> {
     }
 }
 
-impl<R: Read, E: ScanError> fmt::Debug for Scanner<R, E> {
+impl<R: Read, E: ScanError, S: Splitter<E = E>> fmt::Debug for Scanner<R, E, S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Scanner")
             .field("buf", &self.buf)

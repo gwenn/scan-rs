@@ -9,25 +9,34 @@ mod error;
 mod scan;
 
 pub use error::Error;
-pub use scan::Scanner;
+pub use scan::{ScanError, Scanner, Splitter};
 
-pub fn scan_lines(data: &[u8], eof: bool) -> Result<(Option<&[u8]>, usize), Error> {
-    debug!(target: "scanner", "scan_lines");
-    if eof && data.is_empty() {
-        return Ok((None, 0));
-    }
-    let iter = data.iter().enumerate();
-    for (i, val) in iter {
-        if *val == b'\n' {
-            return Ok((Some(drop_cr(&data[..i])), i + 1));
+pub struct Liner {}
+
+impl Splitter for Liner {
+    type E = Error;
+    fn split<'input>(
+        &self,
+        data: &'input [u8],
+        eof: bool,
+    ) -> Result<(Option<&'input [u8]>, usize), Error> {
+        debug!(target: "scanner", "scan_lines");
+        if eof && data.is_empty() {
+            return Ok((None, 0));
         }
+        let iter = data.iter().enumerate();
+        for (i, val) in iter {
+            if *val == b'\n' {
+                return Ok((Some(drop_cr(&data[..i])), i + 1));
+            }
+        }
+        // If we're at EOF, we have a final, non-terminated line. Return it.
+        if eof {
+            return Ok((Some(drop_cr(data)), data.len()));
+        }
+        // Request more data.
+        Ok((None, 0))
     }
-    // If we're at EOF, we have a final, non-terminated line. Return it.
-    if eof {
-        return Ok((Some(drop_cr(data)), data.len()));
-    }
-    // Request more data.
-    Ok((None, 0))
 }
 
 // Drops a terminal \r from the data.
