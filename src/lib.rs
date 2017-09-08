@@ -5,6 +5,7 @@ extern crate log;
 
 use std::result::Result;
 
+pub mod csv;
 mod error;
 mod scan;
 
@@ -16,7 +17,7 @@ pub struct Liner {}
 impl Splitter for Liner {
     type E = Error;
     fn split<'input>(
-        &self,
+        &mut self,
         data: &'input [u8],
         eof: bool,
     ) -> Result<(Option<&'input [u8]>, usize), Error> {

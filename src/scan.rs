@@ -20,7 +20,7 @@ pub trait Splitter: Sized {
     /// If `eof` is true, however, data may be non-empty and,
     /// as always, holds unprocessed text.
     fn split<'input>(
-        &self,
+        &mut self,
         data: &'input [u8],
         eof: bool,
     ) -> Result<(Option<&'input [u8]>, usize), Self::E>;
