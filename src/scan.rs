@@ -7,37 +7,44 @@ use std::result::Result;
 
 pub trait ScanError: Error + From<io::Error> {}
 
-// The arguments are an initial substring of the remaining unprocessed
-// data and a flag, `eof`, that reports whether the Reader has no more data
-// to give.
-//
-// If the returned error is non-nil, scanning stops and the error
-// is returned to the client.
-//
-// The function is never called with an empty data slice unless at EOF.
-// If `eof` is true, however, data may be non-empty and,
-// as always, holds unprocessed text.
+/// The arguments are an initial substring of the remaining unprocessed
+/// data and a flag, `eof`, that reports whether the Reader has no more data
+/// to give.
+///
+/// If the returned error is non-nil, scanning stops and the error
+/// is returned to the client.
+///
+/// The function is never called with an empty data slice unless at EOF.
+/// If `eof` is true, however, data may be non-empty and,
+/// as always, holds unprocessed text.
 pub type FnSplit<E: ScanError> = fn(data: &[u8], eof: bool)
     -> Result<(Option<&[u8]>, usize), E>;
 
 // TODO Result<Option<&[u8]>> or Option<Result<&[u8]>>
 
-// Like a `BufReader` but with a growable buffer.
-// Successive calls to the `scan` method will step through the 'tokens'
-// of a file, skipping the bytes between the tokens.
-//
-// Scanning stops unrecoverably at EOF, the first I/O error, or a token too
-// large to fit in the buffer. When a scan stops, the reader may have
-// advanced arbitrarily far past the last token.
+/// Like a `BufReader` but with a growable buffer.
+/// Successive calls to the `scan` method will step through the 'tokens'
+/// of a file, skipping the bytes between the tokens.
+///
+/// Scanning stops unrecoverably at EOF, the first I/O error, or a token too
+/// large to fit in the buffer. When a scan stops, the reader may have
+/// advanced arbitrarily far past the last token.
 pub struct Scanner<R: Read, E: ScanError> {
-    inner: R,          // The reader provided by the client.
-    split: FnSplit<E>, // The function to tokenize the input.
-    buf: Vec<u8>,      // Buffer used as argument to split.
-    pos: usize,        // First non-processed byte in buf.
-    cap: usize,        // End of data in buf.
+    /// The reader provided by the client.
+    inner: R,
+    /// The function to tokenize the input.
+    split: FnSplit<E>,
+    /// Buffer used as argument to split.
+    buf: Vec<u8>,
+    /// First non-processed byte in buf.
+    pos: usize,
+    /// End of data in buf.
+    cap: usize,
     eof: bool,
-    line: u32,   // current line number
-    column: u32, // current column number (byte offset, not char offset)
+    /// current line number
+    line: u32,
+    /// current column number (byte offset, not char offset)
+    column: u32,
 }
 
 impl<R: Read, E: ScanError> Scanner<R, E> {
@@ -64,10 +71,10 @@ impl<R: Read, E: ScanError> Scanner<R, E> {
 }
 
 impl<R: Read, E: ScanError> Scanner<R, E> {
-    // Advance the Scanner to next token.
-    // Return the token as a byte slice.
-    // Return `None` when the end of the input is reached.
-    // Return any error that occurs while reading the input.
+    /// Advance the Scanner to next token.
+    /// Return the token as a byte slice.
+    /// Return `None` when the end of the input is reached.
+    /// Return any error that occurs while reading the input.
     pub fn scan(&mut self) -> Result<Option<&[u8]>, E> {
         use std::mem;
         debug!(target: "scanner", "scan(line: {}, column: {})", self.line, self.column);
@@ -102,12 +109,12 @@ impl<R: Read, E: ScanError> Scanner<R, E> {
         }
     }
 
-    // Current line number
+    /// Current line number
     pub fn line(&self) -> u32 {
         self.line
     }
 
-    // Current column number (byte offset, not char offset)
+    /// Current column number (byte offset, not char offset)
     pub fn column(&self) -> u32 {
         self.column
     }
@@ -165,12 +172,11 @@ impl<R: Read, E: ScanError> BufRead for Scanner<R, E> {
         Ok(&self.buf[self.pos..self.cap])
     }
 
-    // consumes `amt` bytes of the buffer.
+    /// consumes `amt` bytes of the buffer.
     fn consume(&mut self, amt: usize) {
         debug!(target: "scanner", "comsume({})", amt);
         assert!(self.pos + amt <= self.cap);
         for byte in &self.buf[self.pos..self.pos + amt] {
-            // TODO pos+amt+1 ?
             if *byte == b'\n' {
                 self.line += 1;
                 self.column = 1;
