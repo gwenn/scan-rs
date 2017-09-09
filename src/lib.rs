@@ -15,7 +15,8 @@ pub use scan::{ScanError, Scanner, Splitter};
 pub struct Liner {}
 
 impl Splitter for Liner {
-    type E = Error;
+    type Error = Error;
+    type Item = [u8];
     fn split<'input>(
         &mut self,
         data: &'input mut [u8],

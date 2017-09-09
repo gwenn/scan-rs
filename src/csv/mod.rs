@@ -61,7 +61,8 @@ impl Reader {
 }
 
 impl Splitter for Reader {
-    type E = Error;
+    type Error = Error;
+    type Item = [u8];
 
     fn split<'input>(
         &mut self,

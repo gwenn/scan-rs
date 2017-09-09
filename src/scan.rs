@@ -8,7 +8,8 @@ use std::result::Result;
 pub trait ScanError: Error + From<io::Error> + Sized {}
 
 pub trait Splitter: Sized {
-    type E: ScanError;
+    type Error: ScanError;
+    type Item: ?Sized;
     /// The arguments are an initial substring of the remaining unprocessed
     /// data and a flag, `eof`, that reports whether the Reader has no more data
     /// to give.
@@ -23,7 +24,7 @@ pub trait Splitter: Sized {
         &mut self,
         data: &'input mut [u8],
         eof: bool,
-    ) -> Result<(Option<&'input [u8]>, usize), Self::E>;
+    ) -> Result<(Option<&'input Self::Item>, usize), Self::Error>;
 }
 
 // TODO Result<Option<&[u8]>> or Option<Result<&[u8]>>
@@ -35,7 +36,7 @@ pub trait Splitter: Sized {
 /// Scanning stops unrecoverably at EOF, the first I/O error, or a token too
 /// large to fit in the buffer. When a scan stops, the reader may have
 /// advanced arbitrarily far past the last token.
-pub struct Scanner<R: Read, E: ScanError, S: Splitter<E = E>> {
+pub struct Scanner<R: Read, S: Splitter> {
     /// The reader provided by the client.
     inner: R,
     /// The function to tokenize the input.
@@ -53,11 +54,11 @@ pub struct Scanner<R: Read, E: ScanError, S: Splitter<E = E>> {
     column: usize,
 }
 
-impl<R: Read, E: ScanError, S: Splitter<E = E>> Scanner<R, E, S> {
-    pub fn new(inner: R, splitter: S) -> Scanner<R, E, S> {
+impl<R: Read, S: Splitter> Scanner<R, S> {
+    pub fn new(inner: R, splitter: S) -> Scanner<R, S> {
         Self::with_capacity(inner, splitter, 4096)
     }
-    fn with_capacity(inner: R, splitter: S, capacity: usize) -> Scanner<R, E, S> {
+    fn with_capacity(inner: R, splitter: S, capacity: usize) -> Scanner<R, S> {
         let mut buf = Vec::with_capacity(capacity);
         unsafe {
             buf.set_len(capacity);
@@ -90,12 +91,12 @@ impl<R: Read, E: ScanError, S: Splitter<E = E>> Scanner<R, E, S> {
     }
 }
 
-impl<R: Read, E: ScanError, S: Splitter<E = E>> Scanner<R, E, S> {
+impl<R: Read, S: Splitter> Scanner<R, S> {
     /// Advance the Scanner to next token.
     /// Return the token as a byte slice.
     /// Return `None` when the end of the input is reached.
     /// Return any error that occurs while reading the input.
-    pub fn scan(&mut self) -> Result<Option<&[u8]>, E> {
+    pub fn scan(&mut self) -> Result<Option<&S::Item>, S::Error> {
         use std::mem;
         debug!(target: "scanner", "scan(line: {}, column: {})", self.line, self.column);
         // Loop until we have a token.
@@ -133,7 +134,7 @@ impl<R: Read, E: ScanError, S: Splitter<E = E>> Scanner<R, E, S> {
     }
 }
 
-impl<R: Read, E: ScanError, S: Splitter<E = E>> BufRead for Scanner<R, E, S> {
+impl<R: Read, S: Splitter> BufRead for Scanner<R, S> {
     fn fill_buf(&mut self) -> io::Result<&[u8]> {
         debug!(target: "scanner", "fill_buf");
         // First, shift data to beginning of buffer if there's lots of empty space
@@ -201,7 +202,7 @@ impl<R: Read, E: ScanError, S: Splitter<E = E>> BufRead for Scanner<R, E, S> {
     }
 }
 
-impl<R: Read, E: ScanError, S: Splitter<E = E>> Read for Scanner<R, E, S> {
+impl<R: Read, S: Splitter> Read for Scanner<R, S> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let nread = {
             let mut rem = self.fill_buf()?;
@@ -212,7 +213,7 @@ impl<R: Read, E: ScanError, S: Splitter<E = E>> Read for Scanner<R, E, S> {
     }
 }
 
-impl<R: Read, E: ScanError, S: Splitter<E = E>> fmt::Debug for Scanner<R, E, S> {
+impl<R: Read, S: Splitter> fmt::Debug for Scanner<R, S> {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         f.debug_struct("Scanner")
             .field("buf", &self.buf)
