@@ -18,7 +18,7 @@ impl Splitter for Liner {
     type E = Error;
     fn split<'input>(
         &mut self,
-        data: &'input [u8],
+        data: &'input mut [u8],
         eof: bool,
     ) -> Result<(Option<&'input [u8]>, usize), Error> {
         debug!(target: "scanner", "scan_lines");

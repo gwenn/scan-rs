@@ -10,7 +10,7 @@ pub enum Error {
     /// I/O Error
     Io(io::Error),
     UnescapedQuote(u8),
-    UnterminatedQuotedField(u32),
+    UnterminatedQuotedField,
 }
 
 impl fmt::Display for Error {
@@ -18,11 +18,7 @@ impl fmt::Display for Error {
         match *self {
             Error::Io(ref err) => err.fmt(f),
             Error::UnescapedQuote(quote) => write!(f, "unescaped '{}' character", quote),
-            Error::UnterminatedQuotedField(start_line_number) => write!(
-                f,
-                "non-terminated quoted field at line {}",
-                start_line_number
-            ),
+            Error::UnterminatedQuotedField => write!(f, "non-terminated quoted field"),
         }
     }
 }
@@ -32,7 +28,7 @@ impl error::Error for Error {
         match *self {
             Error::Io(ref err) => err.description(),
             Error::UnescapedQuote(_) => "Unescaped quote",
-            Error::UnterminatedQuotedField(_) => "Unterminated quoted field",
+            Error::UnterminatedQuotedField => "Unterminated quoted field",
         }
     }
 }

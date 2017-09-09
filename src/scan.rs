@@ -21,7 +21,7 @@ pub trait Splitter: Sized {
     /// as always, holds unprocessed text.
     fn split<'input>(
         &mut self,
-        data: &'input [u8],
+        data: &'input mut [u8],
         eof: bool,
     ) -> Result<(Option<&'input [u8]>, usize), Self::E>;
 }
@@ -48,9 +48,9 @@ pub struct Scanner<R: Read, E: ScanError, S: Splitter<E = E>> {
     cap: usize,
     eof: bool,
     /// current line number
-    line: u32,
+    line: u64,
     /// current column number (byte offset, not char offset)
-    column: u32,
+    column: usize,
 }
 
 impl<R: Read, E: ScanError, S: Splitter<E = E>> Scanner<R, E, S> {
@@ -74,6 +74,16 @@ impl<R: Read, E: ScanError, S: Splitter<E = E>> Scanner<R, E, S> {
             column: 1,
         }
     }
+
+    /// Current line number
+    pub fn line(&self) -> u64 {
+        self.line
+    }
+
+    /// Current column number (byte offset, not char offset)
+    pub fn column(&self) -> usize {
+        self.column
+    }
 }
 
 impl<R: Read, E: ScanError, S: Splitter<E = E>> Scanner<R, E, S> {
@@ -89,10 +99,13 @@ impl<R: Read, E: ScanError, S: Splitter<E = E>> Scanner<R, E, S> {
             // See if we can get a token with what we already have.
             if self.cap > self.pos || self.eof {
                 // TODO: I don't know how to make the borrow checker happy!
-                let data = unsafe { mem::transmute(&self.buf[self.pos..self.cap]) };
+                let data = unsafe { mem::transmute(&mut self.buf[self.pos..self.cap]) };
                 match self.splitter.split(data, self.eof)? {
-                    (None, 0) => {}
+                    (None, 0) => {
+                        // Request more data
+                    }
                     (None, amt) => {
+                        // Ignore/skip this data
                         self.consume(amt);
                         continue;
                     }
@@ -113,16 +126,6 @@ impl<R: Read, E: ScanError, S: Splitter<E = E>> Scanner<R, E, S> {
             // Must read more data.
             self.fill_buf()?;
         }
-    }
-
-    /// Current line number
-    pub fn line(&self) -> u32 {
-        self.line
-    }
-
-    /// Current column number (byte offset, not char offset)
-    pub fn column(&self) -> u32 {
-        self.column
     }
 }
 
