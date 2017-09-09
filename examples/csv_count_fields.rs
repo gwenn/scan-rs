@@ -1,9 +1,9 @@
-extern crate scan_rs;
+extern crate scan_rs as scan;
 
 use std::env;
 use std::fs::File;
-use scan_rs::Scanner;
-use scan_rs::csv::Reader;
+use scan::Scanner;
+use scan::csv::Reader;
 
 fn main() {
     let args = env::args();
