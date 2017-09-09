@@ -84,6 +84,10 @@ impl<R: Read, E: ScanError, S: Splitter<E = E>> Scanner<R, E, S> {
     pub fn column(&self) -> usize {
         self.column
     }
+
+    pub fn splitter(&self) -> &S {
+        &self.splitter
+    }
 }
 
 impl<R: Read, E: ScanError, S: Splitter<E = E>> Scanner<R, E, S> {

@@ -74,8 +74,8 @@ impl Splitter for Reader {
         if self.quoted && !data.is_empty() && data[0] == b'"' {
             // quoted field (may contains separator, newline and escaped quote)
             // TODO: I don't know how to make the borrow checker happy!
-            let alias: &[u8] = unsafe { mem::transmute(&data[1..]) };
-            let iter = alias.iter().enumerate();
+            let alias: &[u8] = unsafe { mem::transmute(&data[..]) };
+            let iter = alias.iter().enumerate().skip(1);
             let mut escaped_quotes = 0;
             let mut pb = 0;
             let mut ppb = 0;
@@ -112,16 +112,18 @@ impl Splitter for Reader {
                 ppb = pb;
                 pb = *b;
             }
-            if eof && pb == b'\"' {
-                self.eor = true;
-                let len = data.len();
-                return Ok((
-                    Some(unescape_quotes(&mut data[1..len - 1], escaped_quotes)),
-                    len,
-                ));
+            if eof {
+                if pb == b'\"' {
+                    self.eor = true;
+                    let len = data.len();
+                    return Ok((
+                        Some(unescape_quotes(&mut data[1..len - 1], escaped_quotes)),
+                        len,
+                    ));
+                }
+                // If we're at EOF, we have a non-terminated field.
+                return Err(Error::UnterminatedQuotedField);
             }
-            // If we're at EOF, we have a non-terminated field.
-            return Err(Error::UnterminatedQuotedField);
         } else {
             // unquoted field
             let iter = data.iter().enumerate();
