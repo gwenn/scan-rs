@@ -4,15 +4,16 @@
 extern crate log;
 extern crate memchr;
 
+use std::io::Error;
 use std::result::Result;
 use memchr::memchr;
 
 pub mod csv;
-mod error;
 mod scan;
 
-pub use error::Error;
 pub use scan::{ScanError, Scanner, Splitter};
+
+impl ScanError for Error {}
 
 pub struct Liner {}
 pub type Line<'input> = (&'input [u8], ());
