@@ -27,8 +27,6 @@ pub trait Splitter: Sized {
     ) -> Result<(Option<&'input Self::Item>, usize), Self::Error>;
 }
 
-// TODO Result<Option<&[u8]>> or Option<Result<&[u8]>>
-
 /// Like a `BufReader` but with a growable buffer.
 /// Successive calls to the `scan` method will step through the 'tokens'
 /// of a file, skipping the bytes between the tokens.

@@ -17,7 +17,7 @@ impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match *self {
             Error::Io(ref err) => err.fmt(f),
-            Error::UnescapedQuote(quote) => write!(f, "unescaped '{}' character", quote),
+            Error::UnescapedQuote(quote) => write!(f, "unescaped '{}' character", quote as char),
             Error::UnterminatedQuotedField => write!(f, "non-terminated quoted field"),
         }
     }
