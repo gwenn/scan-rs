@@ -24,7 +24,7 @@ fn main() {
         let field = s.scan().unwrap();
         match field {
             None => break,
-            Some(data) => {
+            Some((data, _)) => {
                 handle.write_all(data).unwrap();
                 handle.write(b"\n").unwrap()
             }

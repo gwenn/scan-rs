@@ -7,9 +7,16 @@ use std::result::Result;
 
 pub trait ScanError: Error + From<io::Error> + Sized {}
 
+type SplitResult<'input, TokenType, Error> = Result<
+    (Option<(&'input [u8], TokenType)>, usize),
+    Error,
+>;
+
 pub trait Splitter: Sized {
     type Error: ScanError;
-    type Item: ?Sized;
+    //type Item: ?Sized;
+    type TokenType;
+
     /// The arguments are an initial substring of the remaining unprocessed
     /// data and a flag, `eof`, that reports whether the Reader has no more data
     /// to give.
@@ -24,7 +31,7 @@ pub trait Splitter: Sized {
         &mut self,
         data: &'input mut [u8],
         eof: bool,
-    ) -> Result<(Option<&'input Self::Item>, usize), Self::Error>;
+    ) -> SplitResult<'input, Self::TokenType, Self::Error>;
 }
 
 /// Like a `BufReader` but with a growable buffer.
@@ -89,12 +96,14 @@ impl<R: Read, S: Splitter> Scanner<R, S> {
     }
 }
 
+type ScanResult<'input, TokenType, Error> = Result<Option<(&'input [u8], TokenType)>, Error>;
+
 impl<R: Read, S: Splitter> Scanner<R, S> {
     /// Advance the Scanner to next token.
     /// Return the token as a byte slice.
     /// Return `None` when the end of the input is reached.
     /// Return any error that occurs while reading the input.
-    pub fn scan(&mut self) -> Result<Option<&S::Item>, S::Error> {
+    pub fn scan<'input>(&'input mut self) -> ScanResult<'input, S::TokenType, S::Error> {
         use std::mem;
         debug!(target: "scanner", "scan(line: {}, column: {})", self.line, self.column);
         // Loop until we have a token.

@@ -13,15 +13,17 @@ pub use error::Error;
 pub use scan::{ScanError, Scanner, Splitter};
 
 pub struct Liner {}
+pub type Line<'input> = (&'input [u8], ());
 
 impl Splitter for Liner {
     type Error = Error;
-    type Item = [u8];
+    type TokenType = ();
+
     fn split<'input>(
         &mut self,
         data: &'input mut [u8],
         eof: bool,
-    ) -> Result<(Option<&'input [u8]>, usize), Error> {
+    ) -> Result<(Option<Line<'input>>, usize), Error> {
         debug!(target: "scanner", "scan_lines");
         if eof && data.is_empty() {
             return Ok((None, 0));
@@ -42,9 +44,9 @@ impl Splitter for Liner {
 }
 
 // Drops a terminal \r from the data.
-fn drop_cr(data: &[u8]) -> &[u8] {
+fn drop_cr(data: &[u8]) -> (&[u8], ()) {
     if !data.is_empty() && data[data.len() - 1] == b'\r' {
-        return &data[..data.len() - 1];
+        return (&data[..data.len() - 1], ());
     }
-    data
+    (data, ())
 }

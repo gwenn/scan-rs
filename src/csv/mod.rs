@@ -9,6 +9,17 @@ mod error;
 pub use csv::error::Error;
 pub use scan::Splitter;
 
+pub enum FieldType {
+    /// Quoted value
+    Quoted,
+    /// Quoted value with escaped quote
+    Escaped,
+    /// Not quoted value
+    Unquoted,
+}
+
+pub type Token<'input> = (&'input [u8], FieldType);
+
 /// Reader provides an interface for reading CSV data
 /// (compatible with rfc4180 and extended with the option of having a separator other than ",").
 /// Successive calls to the `scan` method will step through the 'fields',
@@ -62,13 +73,13 @@ impl Reader {
 
 impl Splitter for Reader {
     type Error = Error;
-    type Item = [u8];
+    type TokenType = FieldType;
 
     fn split<'input>(
         &mut self,
         data: &'input mut [u8],
         eof: bool,
-    ) -> Result<(Option<&'input [u8]>, usize), Error> {
+    ) -> Result<(Option<Token<'input>>, usize), Error> {
         if eof && data.is_empty() && self.eor {
             return Ok((None, 0));
         }
@@ -77,10 +88,14 @@ impl Splitter for Reader {
             return match self.parse_quoted_field(data, eof) {
                 Err(e) => Err(e),
                 Ok((None, _, n)) => Ok((None, n)),
-                Ok((Some(range), true, n)) => {
-                    Ok((data.get_mut(range).map(|d| unescape_quotes(d)), n))
+                Ok((Some(range), true, n)) => Ok((
+                    data.get_mut(range)
+                        .map(|d| (unescape_quotes(d), FieldType::Escaped)),
+                    n,
+                )),
+                Ok((Some(range), false, n)) => {
+                    Ok((data.get(range).map(|d| (d, FieldType::Quoted)), n))
                 }
-                Ok((Some(range), false, n)) => Ok((data.get(range), n)),
             };
         } else {
             // unquoted field
@@ -90,20 +105,20 @@ impl Splitter for Reader {
             for (i, b) in iter {
                 if *b == self.sep {
                     self.eor = false;
-                    return Ok((Some(&data[..i]), i + 1));
+                    return Ok((Some((&data[..i], FieldType::Unquoted)), i + 1));
                 } else if *b == b'\n' {
                     self.eor = true;
                     if pb == b'\r' {
-                        return Ok((Some(&data[..i - 1]), i + 1));
+                        return Ok((Some((&data[..i - 1], FieldType::Unquoted)), i + 1));
                     }
-                    return Ok((Some(&data[..i]), i + 1));
+                    return Ok((Some((&data[..i], FieldType::Unquoted)), i + 1));
                 }
                 pb = *b;
             }
             // If we're at EOF, we have a final field. Return it.
             if eof {
                 self.eor = true;
-                return Ok((Some(data), data.len()));
+                return Ok((Some((data, FieldType::Unquoted)), data.len()));
             }
         }
         // Request more data.
