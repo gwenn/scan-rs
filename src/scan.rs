@@ -94,6 +94,19 @@ impl<R: Read, S: Splitter> Scanner<R, S> {
     pub fn splitter(&self) -> &S {
         &self.splitter
     }
+
+    /// Reset the parser such that it behaves as if it had never been used.
+    pub fn reset(&mut self, inner: R) {
+        self.inner = inner;
+        self.pos = 0;
+        self.cap = 0;
+        self.eof = false;
+        self.line = 1;
+        self.column = 1;
+        unsafe {
+            self.inner.initializer().initialize(&mut self.buf);
+        }
+    }
 }
 
 type ScanResult<'input, TokenType, Error> = Result<Option<(&'input [u8], TokenType)>, Error>;
@@ -193,7 +206,7 @@ impl<R: Read, S: Splitter> BufRead for Scanner<R, S> {
         Ok(&self.buf[self.pos..self.cap])
     }
 
-    /// consumes `amt` bytes of the buffer.
+    /// Consume `amt` bytes of the buffer.
     fn consume(&mut self, amt: usize) {
         debug!(target: "scanner", "comsume({})", amt);
         assert!(self.pos + amt <= self.cap);
