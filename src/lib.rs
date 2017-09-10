@@ -2,8 +2,10 @@
 
 #[macro_use]
 extern crate log;
+extern crate memchr;
 
 use std::result::Result;
+use memchr::memchr;
 
 pub mod csv;
 mod error;
@@ -28,11 +30,8 @@ impl Splitter for Liner {
         if eof && data.is_empty() {
             return Ok((None, 0));
         }
-        let iter = data.iter().enumerate();
-        for (i, val) in iter {
-            if *val == b'\n' {
-                return Ok((Some(drop_cr(&data[..i])), i + 1));
-            }
+        if let Some(i) = memchr(b'\n', data) {
+            return Ok((Some(drop_cr(&data[..i])), i + 1));
         }
         // If we're at EOF, we have a final, non-terminated line. Return it.
         if eof {

@@ -3,6 +3,7 @@
 //! See `csv_read_one_field` function in SQLite3 shell sources.
 use std::ops::Range;
 use std::result::Result;
+use memchr::memchr2;
 
 mod error;
 
@@ -99,21 +100,19 @@ impl Splitter for Reader {
             };
         } else {
             // unquoted field
-            let iter = data.iter().enumerate();
-            let mut pb = 0;
             // Scan until separator or newline, marking end of field.
-            for (i, b) in iter {
-                if *b == self.sep {
+            if let Some(i) = memchr2(self.sep, b'\n', data) {
+                if data[i] == self.sep {
                     self.eor = false;
                     return Ok((Some((&data[..i], FieldType::Unquoted)), i + 1));
-                } else if *b == b'\n' {
+                } else {
+                    debug_assert_eq!(data[i], b'\n');
                     self.eor = true;
-                    if pb == b'\r' {
+                    if i > 0 && data[i - 1] == b'\r' {
                         return Ok((Some((&data[..i - 1], FieldType::Unquoted)), i + 1));
                     }
                     return Ok((Some((&data[..i], FieldType::Unquoted)), i + 1));
                 }
-                pb = *b;
             }
             // If we're at EOF, we have a final field. Return it.
             if eof {
