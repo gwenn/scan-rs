@@ -1,7 +1,7 @@
 //! Adaptation/port of
 //! [SQLite CSV parser](http://www.sqlite.org/src/artifact?ci=trunk&filename=src/shell.c).
 //! See `csv_read_one_field` function in SQLite3 shell sources.
-use std::mem;
+use std::ops::Range;
 use std::result::Result;
 
 mod error;
@@ -74,57 +74,14 @@ impl Splitter for Reader {
         }
         if self.quoted && !data.is_empty() && data[0] == b'"' {
             // quoted field (may contains separator, newline and escaped quote)
-            // TODO: I don't know how to make the borrow checker happy!
-            let alias: &[u8] = unsafe { mem::transmute(&data[..]) };
-            let iter = alias.iter().enumerate().skip(1);
-            let mut escaped_quotes = 0;
-            let mut pb = 0;
-            let mut ppb = 0;
-            // Scan until the separator or newline following the closing quote
-            // (and ignore escaped quote)
-            for (i, b) in iter {
-                if *b == b'"' && pb == *b {
-                    pb = 0;
-                    escaped_quotes += 1;
-                    continue;
+            return match self.parse_quoted_field(data, eof) {
+                Err(e) => Err(e),
+                Ok((None, _, n)) => Ok((None, n)),
+                Ok((Some(range), true, n)) => {
+                    Ok((data.get_mut(range).map(|d| unescape_quotes(d)), n))
                 }
-                if pb == b'"' && *b == self.sep {
-                    self.eor = false;
-                    return Ok((
-                        Some(unescape_quotes(&mut data[1..i - 1], escaped_quotes)),
-                        i + 1,
-                    ));
-                } else if pb == b'"' && *b == b'\n' {
-                    self.eor = true;
-                    return Ok((
-                        Some(unescape_quotes(&mut data[1..i - 1], escaped_quotes)),
-                        i + 1,
-                    ));
-                } else if ppb == b'"' && pb == b'\r' && *b == b'\n' {
-                    self.eor = true;
-                    return Ok((
-                        Some(unescape_quotes(&mut data[1..i - 2], escaped_quotes)),
-                        i + 1,
-                    ));
-                }
-                if pb == b'"' && *b != b'\r' {
-                    return Err(Error::UnescapedQuote(pb));
-                }
-                ppb = pb;
-                pb = *b;
-            }
-            if eof {
-                if pb == b'\"' {
-                    self.eor = true;
-                    let len = data.len();
-                    return Ok((
-                        Some(unescape_quotes(&mut data[1..len - 1], escaped_quotes)),
-                        len,
-                    ));
-                }
-                // If we're at EOF, we have a non-terminated field.
-                return Err(Error::UnterminatedQuotedField);
-            }
+                Ok((Some(range), false, n)) => Ok((data.get(range), n)),
+            };
         } else {
             // unquoted field
             let iter = data.iter().enumerate();
@@ -154,10 +111,55 @@ impl Splitter for Reader {
     }
 }
 
-fn unescape_quotes(data: &mut [u8], count: usize) -> &[u8] {
-    if count == 0 {
-        return data;
+impl Reader {
+    fn parse_quoted_field(
+        &mut self,
+        data: &[u8],
+        eof: bool,
+    ) -> Result<(Option<Range<usize>>, bool, usize), Error> {
+        let iter = data.iter().enumerate().skip(1);
+        let mut escaped_quotes = false;
+        let mut pb = 0;
+        let mut ppb = 0;
+        // Scan until the separator or newline following the closing quote
+        // (and ignore escaped quote)
+        for (i, b) in iter {
+            if *b == b'"' && pb == *b {
+                pb = 0;
+                escaped_quotes = true;
+                continue;
+            }
+            if pb == b'"' && *b == self.sep {
+                self.eor = false;
+                return Ok((Some(1..i - 1), escaped_quotes, i + 1));
+            } else if pb == b'"' && *b == b'\n' {
+                self.eor = true;
+                return Ok((Some(1..i - 1), escaped_quotes, i + 1));
+            } else if ppb == b'"' && pb == b'\r' && *b == b'\n' {
+                self.eor = true;
+                return Ok((Some(1..i - 2), escaped_quotes, i + 1));
+            }
+            if pb == b'"' && *b != b'\r' {
+                return Err(Error::UnescapedQuote(pb));
+            }
+            ppb = pb;
+            pb = *b;
+        }
+        if eof {
+            if pb == b'\"' {
+                self.eor = true;
+                let len = data.len();
+                return Ok((Some(1..len - 1), escaped_quotes, len));
+            }
+            // If we're at EOF, we have a non-terminated field.
+            return Err(Error::UnterminatedQuotedField);
+        }
+        // Request more data.
+        Ok((None, false, 0))
     }
+}
+
+fn unescape_quotes(data: &mut [u8]) -> &[u8] {
     let mut i = 0;
     let mut j = 0;
     while i < data.len() {
@@ -168,5 +170,5 @@ fn unescape_quotes(data: &mut [u8], count: usize) -> &[u8] {
         i += 1;
         j += 1;
     }
-    &data[..data.len() - count]
+    &data[..j]
 }
