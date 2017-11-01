@@ -9,6 +9,7 @@ use std::result::Result;
 use memchr::memchr;
 
 pub mod csv;
+pub mod sql;
 mod scan;
 
 pub use scan::{ScanError, Scanner, Splitter};
