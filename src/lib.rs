@@ -1,3 +1,4 @@
+#![feature(ascii_ctype)]
 #![feature(read_initializer)]
 
 #[macro_use]
