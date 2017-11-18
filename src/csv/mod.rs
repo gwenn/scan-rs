@@ -84,7 +84,7 @@ impl Splitter for Reader {
         if eof && data.is_empty() && self.eor {
             return Ok((None, 0));
         }
-        if self.quoted && !data.is_empty() && data[0] == b'"' {
+        if self.quoted && data[0] == b'"' {
             // quoted field (may contains separator, newline and escaped quote)
             return match self.parse_quoted_field(data, eof) {
                 Err(e) => Err(e),
