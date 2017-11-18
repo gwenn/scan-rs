@@ -1,4 +1,4 @@
-//! Adaptation/port of [SQLite tokenizer](http://www.sqlite.org/src/artifact?ci=trunk&filename=src/tokenize.c)
+//! Adaptation/port of [`SQLite` tokenizer](http://www.sqlite.org/src/artifact?ci=trunk&filename=src/tokenize.c)
 use std::result::Result;
 
 mod error;

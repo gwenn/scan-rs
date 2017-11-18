@@ -41,8 +41,7 @@ impl log::Log for Logger {
 
     fn log(&self, record: &LogRecord) {
         if self.enabled(record.metadata()) {
-            use std::io::Write;
-            writeln!(io::stderr(), "{} - {}", record.level(), record.args()).unwrap();
+            eprintln!("{} - {}", record.level(), record.args());
         }
     }
 }
