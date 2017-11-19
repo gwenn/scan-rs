@@ -17,11 +17,11 @@ fn main() {
                 Ok(None) => break,
                 Err(err) => {
                     //eprintln!("{} at line: {}, column: {}", err, s.line(), s.column());
-                    eprintln!("{}", err);
+                    eprintln!("Err: {}", err);
                     break;
                 }
                 Ok(Some((token, token_type))) => {
-                    println!("{}, {:?}", str::from_utf8(token).unwrap(), token_type);
+                    println!("'{}', {:?}", str::from_utf8(token).unwrap(), token_type);
                 }
             }
         }

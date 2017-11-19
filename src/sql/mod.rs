@@ -324,7 +324,7 @@ impl Splitter for Tokenizer {
             return Ok((
                 None,
                 match data.iter().skip(1).position(|&b| !b.is_ascii_whitespace()) {
-                    Some(i) => i+1,
+                    Some(i) => i + 1,
                     _ => data.len(),
                 },
             ));
@@ -436,7 +436,7 @@ impl Splitter for Tokenizer {
                 match data.iter().skip(1).position(|&b| !b.is_ascii_digit()) {
                     Some(i) => {
                         // do not include the '?' in the token
-                        return Ok((Some((&data[1..i+1], TokenType::Variable)), i+1));
+                        return Ok((Some((&data[1..i + 1], TokenType::Variable)), i + 1));
                     }
                     None if eof => return Ok((Some((&data[1..], TokenType::Variable)), data.len())),
                     _ => {
@@ -449,10 +449,10 @@ impl Splitter for Tokenizer {
                     .skip(1)
                     .position(|&b| !is_identifier_continue(b))
                 {
-                    Some(1) => return Err(Error::BadVariableName),
+                    Some(0) => return Err(Error::BadVariableName),
                     Some(i) => {
                         // '$' is included as part of the name
-                        return Ok((Some((&data[..i+1], TokenType::Variable)), i+1));
+                        return Ok((Some((&data[..i + 1], TokenType::Variable)), i + 1));
                     }
                     None if eof => return Err(Error::BadVariableName),
                     _ => {
@@ -481,6 +481,7 @@ fn literal<'input>(
     eof: bool,
     quote: u8,
 ) -> Result<(Option<Token<'input>>, usize), Error> {
+    debug_assert_eq!(data[0], quote);
     let tt = if quote == b'\'' {
         TokenType::StringLiteral
     } else {
@@ -546,13 +547,14 @@ fn blob_literal<'input>(
     data: &'input [u8],
     eof: bool,
 ) -> Result<(Option<Token<'input>>, usize), Error> {
-    // data = x'... => skip(2)
+    debug_assert!(data[0] == b'x' || data[0] == b'X');
+    debug_assert_eq!(data[1], b'\'');
     if let Some((i, b)) = data.iter()
         .enumerate()
         .skip(2)
         .find(|&(_, &b)| !b.is_ascii_hexdigit())
     {
-        if *b != b'\'' || i % 2 == 0 {
+        if *b != b'\'' || i % 2 != 0 {
             return Err(Error::MalformedBlobLiteral);
         }
         return Ok((Some((&data[2..i], TokenType::Blob)), i + 1));
@@ -564,6 +566,7 @@ fn blob_literal<'input>(
 }
 
 fn number<'input>(data: &'input [u8], eof: bool) -> Result<(Option<Token<'input>>, usize), Error> {
+    debug_assert!(data[0].is_ascii_digit());
     if data[0] == b'0' {
         if let Some(b) = data.get(1) {
             if *b == b'x' || *b == b'X' {
@@ -600,7 +603,8 @@ fn hex_integer<'input>(
     data: &'input [u8],
     eof: bool,
 ) -> Result<(Option<Token<'input>>, usize), Error> {
-    // data = 0x... => skip(2)
+    debug_assert_eq!(data[0], b'0');
+    debug_assert!(data[1] == b'x' || data[1] == b'X');
     if let Some((i, b)) = data.iter()
         .enumerate()
         .skip(2)
@@ -627,7 +631,7 @@ fn fractional_part<'input>(
     eof: bool,
     i: usize,
 ) -> Result<(Option<Token<'input>>, usize), Error> {
-    // data[i] == '.'
+    debug_assert_eq!(data[i], b'.');
     if let Some((i, b)) = data.iter()
         .enumerate()
         .skip(i + 1)
@@ -651,6 +655,7 @@ fn exponential_part<'input>(
     eof: bool,
     i: usize,
 ) -> Result<(Option<Token<'input>>, usize), Error> {
+    debug_assert!(data[i] == b'e' || data[i] == b'E');
     // data[i] == 'e'|'E'
     if let Some(b) = data.get(i + 1) {
         let i = if *b == b'+' || *b == b'-' { i + 1 } else { i };
@@ -677,13 +682,14 @@ fn identifierish<'input>(
     data: &'input [u8],
     eof: bool,
 ) -> Result<(Option<Token<'input>>, usize), Error> {
+    debug_assert!(is_identifier_start(data[0]));
     // data[0] is_identifier_start => skip(1)
     let end = data.iter()
         .skip(1)
         .position(|&b| !is_identifier_continue(b));
     if end.is_some() || eof {
         let i = match end {
-            Some(i) => i+1,
+            Some(i) => i + 1,
             _ => data.len(),
         };
         let word = &data[..i];
