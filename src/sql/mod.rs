@@ -324,7 +324,7 @@ impl Splitter for Tokenizer {
             return Ok((
                 None,
                 match data.iter().skip(1).position(|&b| !b.is_ascii_whitespace()) {
-                    Some(i) => i,
+                    Some(i) => i+1,
                     _ => data.len(),
                 },
             ));
@@ -436,7 +436,7 @@ impl Splitter for Tokenizer {
                 match data.iter().skip(1).position(|&b| !b.is_ascii_digit()) {
                     Some(i) => {
                         // do not include the '?' in the token
-                        return Ok((Some((&data[1..i], TokenType::Variable)), i));
+                        return Ok((Some((&data[1..i+1], TokenType::Variable)), i+1));
                     }
                     None if eof => return Ok((Some((&data[1..], TokenType::Variable)), data.len())),
                     _ => {
@@ -452,7 +452,7 @@ impl Splitter for Tokenizer {
                     Some(1) => return Err(Error::BadVariableName),
                     Some(i) => {
                         // '$' is included as part of the name
-                        return Ok((Some((&data[..i], TokenType::Variable)), i));
+                        return Ok((Some((&data[..i+1], TokenType::Variable)), i+1));
                     }
                     None if eof => return Err(Error::BadVariableName),
                     _ => {
@@ -683,7 +683,7 @@ fn identifierish<'input>(
         .position(|&b| !is_identifier_continue(b));
     if end.is_some() || eof {
         let i = match end {
-            Some(i) => i,
+            Some(i) => i+1,
             _ => data.len(),
         };
         let word = &data[..i];
