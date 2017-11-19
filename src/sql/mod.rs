@@ -2,6 +2,8 @@
 use std::result::Result;
 
 use memchr::memchr;
+use phf;
+use unicase::UniCase;
 
 mod error;
 
@@ -173,6 +175,134 @@ pub enum TokenType {
     Star,
 }
 
+// TODO how to make phf support unicase::Ascii ?
+static KEYWORDS: phf::Map<UniCase<&str>, TokenType> = phf_map! {
+    UniCase("ABORT") => TokenType::Abort,
+    UniCase("ACTION") => TokenType::Action,
+    UniCase("ADD") => TokenType::Add,
+    UniCase("AFTER") => TokenType::After,
+    UniCase("ALL") => TokenType::All,
+    UniCase("ALTER") => TokenType::Alter,
+    UniCase("ANALYZE") => TokenType::Analyze,
+    UniCase("AND") => TokenType::And,
+    UniCase("AS") => TokenType::As,
+    UniCase("ASC") => TokenType::Asc,
+    UniCase("ATTACH") => TokenType::Attach,
+    UniCase("AUTOINCREMENT") => TokenType::Autoincr,
+    UniCase("BEFORE") => TokenType::Before,
+    UniCase("BEGIN") => TokenType::Begin,
+    UniCase("BETWEEN") => TokenType::Between,
+    UniCase("BY") => TokenType::By,
+    UniCase("CASCADE") => TokenType::Cascade,
+    UniCase("CASE") => TokenType::Case,
+    UniCase("CAST") => TokenType::Cast,
+    UniCase("CHECK") => TokenType::Check,
+    UniCase("COLLATE") => TokenType::Collate,
+    UniCase("COLUMN") => TokenType::ColumnKw,
+    UniCase("COMMIT") => TokenType::Commit,
+    UniCase("CONFLICT") => TokenType::Conflict,
+    UniCase("CONSTRAINT") => TokenType::Constraint,
+    UniCase("CREATE") => TokenType::Create,
+    UniCase("CROSS") => TokenType::Cross,
+    UniCase("CURRENT_DATE") => TokenType::CurrentDate,
+    UniCase("CURRENT_TIME") => TokenType::CurrentTime,
+    UniCase("CURRENT_TIMESTAMP") => TokenType::CurrentTimestamp,
+    UniCase("DATABASE") => TokenType::Database,
+    UniCase("DEFAULT") => TokenType::Default,
+    UniCase("DEFERRABLE") => TokenType::Deferrable,
+    UniCase("DEFERRED") => TokenType::Deferred,
+    UniCase("DELETE") => TokenType::Delete,
+    UniCase("DESC") => TokenType::Desc,
+    UniCase("DETACH") => TokenType::Detach,
+    UniCase("DISTINCT") => TokenType::Distinct,
+    UniCase("DROP") => TokenType::Drop,
+    UniCase("EACH") => TokenType::Each,
+    UniCase("ELSE") => TokenType::Else,
+    UniCase("END") => TokenType::End,
+    UniCase("ESCAPE") => TokenType::Escape,
+    UniCase("EXCEPT") => TokenType::Except,
+    UniCase("EXCLUSIVE") => TokenType::Exclusive,
+    UniCase("EXISTS") => TokenType::Exists,
+    UniCase("EXPLAIN") => TokenType::Explain,
+    UniCase("FAIL") => TokenType::Fail,
+    UniCase("FOR") => TokenType::For,
+    UniCase("FOREIGN") => TokenType::Foreign,
+    UniCase("FROM") => TokenType::From,
+    UniCase("FULL") => TokenType::Full,
+    UniCase("GLOB") => TokenType::Glob,
+    UniCase("GROUP") => TokenType::Group,
+    UniCase("HAVING") => TokenType::Having,
+    UniCase("IF") => TokenType::If,
+    UniCase("IGNORE") => TokenType::Ignore,
+    UniCase("IMMEDIATE") => TokenType::Immediate,
+    UniCase("IN") => TokenType::In,
+    UniCase("INDEX") => TokenType::Index,
+    UniCase("INDEXED") => TokenType::Indexed,
+    UniCase("INITIALLY") => TokenType::Initially,
+    UniCase("INNER") => TokenType::Inner,
+    UniCase("INSERT") => TokenType::Insert,
+    UniCase("INSTEAD") => TokenType::Instead,
+    UniCase("INTERSECT") => TokenType::Intersect,
+    UniCase("INTO") => TokenType::Into,
+    UniCase("IS") => TokenType::Is,
+    UniCase("ISNULL") => TokenType::IsNull,
+    UniCase("JOIN") => TokenType::Join,
+    UniCase("KEY") => TokenType::Key,
+    UniCase("LEFT") => TokenType::Left,
+    UniCase("LIKE") => TokenType::Like,
+    UniCase("LIMIT") => TokenType::Limit,
+    UniCase("MATCH") => TokenType::Match,
+    UniCase("NATURAL") => TokenType::Natural,
+    UniCase("NO") => TokenType::No,
+    UniCase("NOT") => TokenType::Not,
+    UniCase("NOTNULL") => TokenType::NotNull,
+    UniCase("NULL") => TokenType::Null,
+    UniCase("OF") => TokenType::Of,
+    UniCase("OFFSET") => TokenType::Offset,
+    UniCase("ON") => TokenType::On,
+    UniCase("OR") => TokenType::Or,
+    UniCase("ORDER") => TokenType::Order,
+    UniCase("OUTER") => TokenType::Outer,
+    UniCase("PLAN") => TokenType::Plan,
+    UniCase("PRAGMA") => TokenType::Pragma,
+    UniCase("PRIMARY") => TokenType::Primary,
+    UniCase("QUERY") => TokenType::Query,
+    UniCase("RAISE") => TokenType::Raise,
+    UniCase("RECURSIVE") => TokenType::Recursive,
+    UniCase("REFERENCES") => TokenType::References,
+    UniCase("REGEXP") => TokenType::Regexp,
+    UniCase("REINDEX") => TokenType::Reindex,
+    UniCase("RELEASE") => TokenType::Release,
+    UniCase("RENAME") => TokenType::Rename,
+    UniCase("REPLACE") => TokenType::Replace,
+    UniCase("RESTRICT") => TokenType::Restrict,
+    UniCase("RIGHT") => TokenType::Right,
+    UniCase("ROLLBACK") => TokenType::Rollback,
+    UniCase("ROW") => TokenType::Row,
+    UniCase("SAVEPOINT") => TokenType::Savepoint,
+    UniCase("SELECT") => TokenType::Select,
+    UniCase("SET") => TokenType::Set,
+    UniCase("TABLE") => TokenType::Table,
+    UniCase("TEMP") => TokenType::Temp,
+    UniCase("TEMPORARY") => TokenType::Temp,
+    UniCase("THEN") => TokenType::Then,
+    UniCase("TO") => TokenType::To,
+    UniCase("TRANSACTION") => TokenType::Transaction,
+    UniCase("TRIGGER") => TokenType::Trigger,
+    UniCase("UNION") => TokenType::Union,
+    UniCase("UNIQUE") => TokenType::Unique,
+    UniCase("UPDATE") => TokenType::Update,
+    UniCase("USING") => TokenType::Using,
+    UniCase("VACUUM") => TokenType::Vacuum,
+    UniCase("VALUES") => TokenType::Values,
+    UniCase("VIEW") => TokenType::View,
+    UniCase("VIRTUAL") => TokenType::Virtual,
+    UniCase("WHEN") => TokenType::When,
+    UniCase("WHERE") => TokenType::Where,
+    UniCase("WITH") => TokenType::With,
+    UniCase("WITHOUT") => TokenType::Without
+};
+
 pub type Token<'input> = (&'input [u8], TokenType);
 
 pub struct Tokenizer {}
@@ -204,7 +334,7 @@ impl Splitter for Tokenizer {
                 if *b == b'-' {
                     // eat comment
                     if let Some(i) = memchr(b'\n', data) {
-                        return Ok((None, i));
+                        return Ok((None, i + 1));
                     } else if eof {
                         return Ok((None, data.len()));
                     } // else ask more data until '\n'
@@ -297,7 +427,7 @@ impl Splitter for Tokenizer {
             b'[' => {
                 if let Some(i) = memchr(b']', data) {
                     // do not include the '['/']' in the token
-                    return Ok((Some((&data[1..i], TokenType::Id)), i));
+                    return Ok((Some((&data[1..i], TokenType::Id)), i + 1));
                 } else if eof {
                     return Err(Error::UnterminatedBracket);
                 } // else ask more data until ']'
@@ -314,7 +444,31 @@ impl Splitter for Tokenizer {
                     }
                 };
             }
-            b'$' | b'@' | b'#' | b':' => {}
+            b'$' | b'@' | b'#' | b':' => {
+                match data.iter()
+                    .skip(1)
+                    .position(|&b| !is_identifier_continue(b))
+                {
+                    Some(1) => return Err(Error::BadVariableName),
+                    Some(i) => {
+                        // '$' is included as part of the name
+                        return Ok((Some((&data[..i], TokenType::Variable)), i));
+                    }
+                    None if eof => return Err(Error::BadVariableName),
+                    _ => {
+                        // else ask more data
+                    }
+                };
+            }
+            b if is_identifier_start(b) => if b == b'x' || b == b'X' {
+                if let Some(&b'\'') = data.get(1) {
+                    return blob_literal(data, eof);
+                } else {
+                    return identifierish(data, eof);
+                }
+            } else {
+                return identifierish(data, eof);
+            },
             _ => return Err(Error::UnrecognizedToken),
         };
         // Request more data.
@@ -333,7 +487,7 @@ fn literal<'input>(
         TokenType::Id
     };
     let mut pb = 0;
-    let mut pos = None;
+    let mut end = None;
     let mut escaped_quotes = false;
     // data[0] == quote => skip(1)
     for (i, b) in data.iter().enumerate().skip(1) {
@@ -345,13 +499,13 @@ fn literal<'input>(
                 continue;
             }
         } else if pb == quote {
-            pos = Some(i);
+            end = Some(i);
             break;
         }
         pb = *b;
     }
-    if pos.is_some() || (eof && pb == quote) {
-        let i = match pos {
+    if end.is_some() || (eof && pb == quote) {
+        let i = match end {
             Some(i) => i,
             _ => data.len(),
         };
@@ -388,6 +542,24 @@ fn unescape_quotes(data: &mut [u8], quote: u8) -> &[u8] {
     &data[..j]
 }
 
+fn blob_literal<'input>(
+    data: &'input [u8],
+    eof: bool,
+) -> Result<(Option<Token<'input>>, usize), Error> {
+    // data = x'... => skip(2)
+    if let Some(i) = data.iter().skip(2).position(|&b| !b.is_ascii_hexdigit()) {
+        if data[i] != b'\'' || i % 2 == 0 {
+            return Err(Error::MalformedBlobLiteral);
+        }
+        return Ok((Some((&data[2..i], TokenType::Blob)), i + 1));
+    } else if eof {
+        return Err(Error::MalformedBlobLiteral);
+    }
+    // FIXME
+    // else ask more data
+    Ok((None, 0))
+}
+
 fn number<'input>(data: &'input [u8], eof: bool) -> Result<(Option<Token<'input>>, usize), Error> {
     // FIXME
     // else ask more data
@@ -401,4 +573,41 @@ fn fractional_part<'input>(
     // FIXME
     // else ask more data
     Ok((None, 0))
+}
+
+fn identifierish<'input>(
+    data: &'input [u8],
+    eof: bool,
+) -> Result<(Option<Token<'input>>, usize), Error> {
+    let end = data.iter()
+        .skip(1)
+        .position(|&b| !is_identifier_continue(b));
+    if end.is_some() || eof {
+        let i = match end {
+            Some(i) => i,
+            _ => data.len(),
+        };
+        let word = &data[..i];
+        let tt = if word.len() > 2 && word.is_ascii() {
+            use std::str;
+            let s = unsafe { str::from_utf8_unchecked(word) };
+            // https://github.com/rust-lang/rust/issues/28853
+            let s = unsafe { ::std::mem::transmute::<_, &'static str>(s) };
+            KEYWORDS.get(&UniCase(s)).cloned().unwrap_or(TokenType::Id)
+        } else {
+            TokenType::Id
+        };
+        return Ok((Some((word, tt)), i));
+    }
+    // else ask more data
+    Ok((None, 0))
+}
+
+fn is_identifier_start(b: u8) -> bool {
+    (b >= b'A' && b <= b'Z') || b == b'_' || (b >= b'a' && b <= b'z') || b > b'\x7F'
+}
+
+fn is_identifier_continue(b: u8) -> bool {
+    b == b'$' || (b >= b'0' && b <= b'9') || (b >= b'A' && b <= b'Z') || b == b'_'
+        || (b >= b'a' && b <= b'z') || b > b'\x7F'
 }

@@ -1,9 +1,13 @@
 #![feature(ascii_ctype)]
 #![feature(read_initializer)]
+#![feature(plugin)]
+#![plugin(phf_macros)]
 
 #[macro_use]
 extern crate log;
 extern crate memchr;
+extern crate phf;
+extern crate unicase;
 
 use std::io::Error;
 use std::result::Result;
