@@ -17,7 +17,7 @@ fn main() {
                 Ok(None) => break,
                 Err(err) => {
                     //eprintln!("{} at line: {}, column: {}", err, s.line(), s.column());
-                    eprintln!("Err: {}", err);
+                    eprintln!("Err: {} in {}", err, arg);
                     break;
                 }
                 Ok(Some((token, token_type))) => {

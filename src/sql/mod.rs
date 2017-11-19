@@ -454,7 +454,12 @@ impl Splitter for Tokenizer {
                         // '$' is included as part of the name
                         return Ok((Some((&data[..i + 1], TokenType::Variable)), i + 1));
                     }
-                    None if eof => return Err(Error::BadVariableName),
+                    None if eof => {
+                        if data.len() == 1 {
+                            return Err(Error::BadVariableName)
+                        }
+                        return Ok((Some((data, TokenType::Variable)), data.len()));
+                    },
                     _ => {
                         // else ask more data
                     }
@@ -669,7 +674,10 @@ fn exponential_part<'input>(
             }
             return Ok((Some((&data[..i], TokenType::Float)), i));
         } else if eof {
-            return Err(Error::BadNumber);
+            if data.len() == i+1 {
+                return Err(Error::BadNumber);
+            }
+            return Ok((Some((data, TokenType::Float)), data.len()));
         }
     } else if eof {
         return Err(Error::BadNumber);
