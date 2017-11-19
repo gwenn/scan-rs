@@ -416,7 +416,7 @@ impl Splitter for Tokenizer {
             quote @ b'`' | quote @ b'\'' | quote @ b'"' => return literal(data, eof, quote),
             b'.' => if let Some(b) = data.get(1) {
                 if b.is_ascii_digit() {
-                    return fractional_part(data, eof);
+                    return fractional_part(data, eof, 0);
                 } else if eof {
                     return Ok((Some((&data[..1], TokenType::Dot)), 1));
                 }
@@ -547,21 +547,77 @@ fn blob_literal<'input>(
     eof: bool,
 ) -> Result<(Option<Token<'input>>, usize), Error> {
     // data = x'... => skip(2)
-    if let Some(i) = data.iter().skip(2).position(|&b| !b.is_ascii_hexdigit()) {
-        if data[i] != b'\'' || i % 2 == 0 {
+    if let Some((i, b)) = data.iter()
+        .enumerate()
+        .skip(2)
+        .find(|&(_, &b)| !b.is_ascii_hexdigit())
+    {
+        if *b != b'\'' || i % 2 == 0 {
             return Err(Error::MalformedBlobLiteral);
         }
         return Ok((Some((&data[2..i], TokenType::Blob)), i + 1));
     } else if eof {
         return Err(Error::MalformedBlobLiteral);
     }
-    // FIXME
     // else ask more data
     Ok((None, 0))
 }
 
 fn number<'input>(data: &'input [u8], eof: bool) -> Result<(Option<Token<'input>>, usize), Error> {
-    // FIXME
+    if data[0] == b'0' {
+        if let Some(b) = data.get(1) {
+            if *b == b'x' || *b == b'X' {
+                return hex_integer(data, eof);
+            }
+        } else if eof {
+            return Ok((Some((data, TokenType::Integer)), data.len()));
+        } else {
+            // ask more data
+            return Ok((None, 0));
+        }
+    }
+    if let Some((i, b)) = data.iter()
+        .enumerate()
+        .skip(1)
+        .find(|&(_, &b)| !b.is_ascii_digit())
+    {
+        if *b == b'.' {
+            return fractional_part(data, eof, i);
+        } else if *b == b'e' || *b == b'E' {
+            return exponential_part(data, eof, i);
+        } else if is_identifier_start(*b) {
+            return Err(Error::BadNumber);
+        }
+        return Ok((Some((&data[..i], TokenType::Integer)), i));
+    } else if eof {
+        return Ok((Some((data, TokenType::Integer)), data.len()));
+    }
+    // else ask more data
+    Ok((None, 0))
+}
+
+fn hex_integer<'input>(
+    data: &'input [u8],
+    eof: bool,
+) -> Result<(Option<Token<'input>>, usize), Error> {
+    // data = 0x... => skip(2)
+    if let Some((i, b)) = data.iter()
+        .enumerate()
+        .skip(2)
+        .find(|&(_, &b)| !b.is_ascii_hexdigit())
+    {
+        // Must not be empty (Ox is invalid)
+        if i == 2 || is_identifier_start(*b) {
+            return Err(Error::MalformedHexInteger);
+        }
+        return Ok((Some((&data[..i], TokenType::Integer)), i));
+    } else if eof {
+        // Must not be empty (Ox is invalid)
+        if data.len() == 2 {
+            return Err(Error::MalformedHexInteger);
+        }
+        return Ok((Some((data, TokenType::Integer)), data.len()));
+    }
     // else ask more data
     Ok((None, 0))
 }
@@ -569,8 +625,50 @@ fn number<'input>(data: &'input [u8], eof: bool) -> Result<(Option<Token<'input>
 fn fractional_part<'input>(
     data: &'input [u8],
     eof: bool,
+    i: usize,
 ) -> Result<(Option<Token<'input>>, usize), Error> {
-    // FIXME
+    // data[i] == '.'
+    if let Some((i, b)) = data.iter()
+        .enumerate()
+        .skip(i + 1)
+        .find(|&(_, &b)| !b.is_ascii_digit())
+    {
+        if *b == b'e' || *b == b'E' {
+            return exponential_part(data, eof, i);
+        } else if is_identifier_start(*b) {
+            return Err(Error::BadNumber);
+        }
+        return Ok((Some((&data[..i], TokenType::Float)), i));
+    } else if eof {
+        return Ok((Some((data, TokenType::Float)), data.len()));
+    }
+    // else ask more data
+    Ok((None, 0))
+}
+
+fn exponential_part<'input>(
+    data: &'input [u8],
+    eof: bool,
+    i: usize,
+) -> Result<(Option<Token<'input>>, usize), Error> {
+    // data[i] == 'e'|'E'
+    if let Some(b) = data.get(i + 1) {
+        let i = if *b == b'+' || *b == b'-' { i + 1 } else { i };
+        if let Some((i, b)) = data.iter()
+            .enumerate()
+            .skip(i + 1)
+            .find(|&(_, &b)| !b.is_ascii_digit())
+        {
+            if is_identifier_start(*b) {
+                return Err(Error::BadNumber);
+            }
+            return Ok((Some((&data[..i], TokenType::Float)), i));
+        } else if eof {
+            return Err(Error::BadNumber);
+        }
+    } else if eof {
+        return Err(Error::BadNumber);
+    }
     // else ask more data
     Ok((None, 0))
 }
@@ -579,6 +677,7 @@ fn identifierish<'input>(
     data: &'input [u8],
     eof: bool,
 ) -> Result<(Option<Token<'input>>, usize), Error> {
+    // data[0] is_identifier_start => skip(1)
     let end = data.iter()
         .skip(1)
         .position(|&b| !is_identifier_continue(b));
