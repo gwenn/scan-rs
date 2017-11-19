@@ -353,6 +353,7 @@ impl Splitter for Tokenizer {
                 if *b == b'*' {
                     // eat comment
                     if let Some(i) = data.windows(2).position(|w| w == b"*/") {
+                        // FIXME slow
                         return Ok((None, i + 2));
                     } else if eof {
                         return Err(Error::UnterminatedBlockComment);
@@ -456,10 +457,10 @@ impl Splitter for Tokenizer {
                     }
                     None if eof => {
                         if data.len() == 1 {
-                            return Err(Error::BadVariableName)
+                            return Err(Error::BadVariableName);
                         }
                         return Ok((Some((data, TokenType::Variable)), data.len()));
-                    },
+                    }
                     _ => {
                         // else ask more data
                     }
@@ -674,7 +675,7 @@ fn exponential_part<'input>(
             }
             return Ok((Some((&data[..i], TokenType::Float)), i));
         } else if eof {
-            if data.len() == i+1 {
+            if data.len() == i + 1 {
                 return Err(Error::BadNumber);
             }
             return Ok((Some((data, TokenType::Float)), data.len()));
