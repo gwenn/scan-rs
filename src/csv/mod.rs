@@ -154,7 +154,10 @@ impl Reader {
                 return Ok((Some(1..i - 2), escaped_quotes, i + 1));
             }
             if pb == b'"' && *b != b'\r' {
-                return Err(Error::UnescapedQuote(pb));
+                return Err(Error::UnescapedQuote {
+                    quote: pb,
+                    pos: None,
+                });
             }
             ppb = pb;
             pb = *b;
@@ -166,7 +169,7 @@ impl Reader {
                 return Ok((Some(1..len - 1), escaped_quotes, len));
             }
             // If we're at EOF, we have a non-terminated field.
-            return Err(Error::UnterminatedQuotedField);
+            return Err(Error::UnterminatedQuotedField(None));
         }
         // Request more data.
         Ok((None, false, 0))

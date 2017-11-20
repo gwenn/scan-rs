@@ -364,7 +364,7 @@ impl Splitter for Tokenizer {
                     if let Some(i) = end {
                         return Ok((None, i + 1));
                     } else if eof {
-                        return Err(Error::UnterminatedBlockComment);
+                        return Err(Error::UnterminatedBlockComment(None));
                     } // else ask more data until '*/'
                 } else {
                     return Ok((Some((&data[..1], TokenType::Slash)), 1));
@@ -405,10 +405,10 @@ impl Splitter for Tokenizer {
                 if *b == b'=' {
                     return Ok((Some((&data[..2], TokenType::NotEquals)), 2));
                 } else {
-                    return Err(Error::ExpectedEqualsSign);
+                    return Err(Error::ExpectedEqualsSign(None));
                 }
             } else if eof {
-                return Err(Error::ExpectedEqualsSign);
+                return Err(Error::ExpectedEqualsSign(None));
             }, /* else ask more data */
             b'|' => if let Some(b) = data.get(1) {
                 return Ok(if *b == b'|' {
@@ -438,7 +438,7 @@ impl Splitter for Tokenizer {
                     // do not include the '['/']' in the token
                     return Ok((Some((&data[1..i], TokenType::Id)), i + 1));
                 } else if eof {
-                    return Err(Error::UnterminatedBracket);
+                    return Err(Error::UnterminatedBracket(None));
                 } // else ask more data until ']'
             }
             b'?' => {
@@ -458,14 +458,14 @@ impl Splitter for Tokenizer {
                     .skip(1)
                     .position(|&b| !is_identifier_continue(b))
                 {
-                    Some(0) => return Err(Error::BadVariableName),
+                    Some(0) => return Err(Error::BadVariableName(None)),
                     Some(i) => {
                         // '$' is included as part of the name
                         return Ok((Some((&data[..i + 1], TokenType::Variable)), i + 1));
                     }
                     None if eof => {
                         if data.len() == 1 {
-                            return Err(Error::BadVariableName);
+                            return Err(Error::BadVariableName(None));
                         }
                         return Ok((Some((data, TokenType::Variable)), data.len()));
                     }
@@ -483,7 +483,7 @@ impl Splitter for Tokenizer {
             } else {
                 return identifierish(data, eof);
             },
-            _ => return Err(Error::UnrecognizedToken),
+            _ => return Err(Error::UnrecognizedToken(None)),
         };
         // Request more data.
         Ok((None, 0))
@@ -537,7 +537,7 @@ fn literal<'input>(
             i,
         ));
     } else if eof {
-        return Err(Error::UnterminatedLiteral);
+        return Err(Error::UnterminatedLiteral(None));
     }
     // else ask more data until closing quote
     Ok((None, 0))
@@ -569,11 +569,11 @@ fn blob_literal<'input>(
         .find(|&(_, &b)| !b.is_ascii_hexdigit())
     {
         if *b != b'\'' || i % 2 != 0 {
-            return Err(Error::MalformedBlobLiteral);
+            return Err(Error::MalformedBlobLiteral(None));
         }
         return Ok((Some((&data[2..i], TokenType::Blob)), i + 1));
     } else if eof {
-        return Err(Error::MalformedBlobLiteral);
+        return Err(Error::MalformedBlobLiteral(None));
     }
     // else ask more data
     Ok((None, 0))
@@ -603,7 +603,7 @@ fn number<'input>(data: &'input [u8], eof: bool) -> Result<(Option<Token<'input>
         } else if *b == b'e' || *b == b'E' {
             return exponential_part(data, eof, i);
         } else if is_identifier_start(*b) {
-            return Err(Error::BadNumber);
+            return Err(Error::BadNumber(None));
         }
         return Ok((Some((&data[..i], TokenType::Integer)), i));
     } else if eof {
@@ -626,13 +626,13 @@ fn hex_integer<'input>(
     {
         // Must not be empty (Ox is invalid)
         if i == 2 || is_identifier_start(*b) {
-            return Err(Error::MalformedHexInteger);
+            return Err(Error::MalformedHexInteger(None));
         }
         return Ok((Some((&data[..i], TokenType::Integer)), i));
     } else if eof {
         // Must not be empty (Ox is invalid)
         if data.len() == 2 {
-            return Err(Error::MalformedHexInteger);
+            return Err(Error::MalformedHexInteger(None));
         }
         return Ok((Some((data, TokenType::Integer)), data.len()));
     }
@@ -654,7 +654,7 @@ fn fractional_part<'input>(
         if *b == b'e' || *b == b'E' {
             return exponential_part(data, eof, i);
         } else if is_identifier_start(*b) {
-            return Err(Error::BadNumber);
+            return Err(Error::BadNumber(None));
         }
         return Ok((Some((&data[..i], TokenType::Float)), i));
     } else if eof {
@@ -679,17 +679,17 @@ fn exponential_part<'input>(
             .find(|&(_, &b)| !b.is_ascii_digit())
         {
             if is_identifier_start(*b) {
-                return Err(Error::BadNumber);
+                return Err(Error::BadNumber(None));
             }
             return Ok((Some((&data[..i], TokenType::Float)), i));
         } else if eof {
             if data.len() == i + 1 {
-                return Err(Error::BadNumber);
+                return Err(Error::BadNumber(None));
             }
             return Ok((Some((data, TokenType::Float)), data.len()));
         }
     } else if eof {
-        return Err(Error::BadNumber);
+        return Err(Error::BadNumber(None));
     }
     // else ask more data
     Ok((None, 0))

@@ -19,7 +19,9 @@ mod scan;
 
 pub use scan::{ScanError, Scanner, Splitter};
 
-impl ScanError for Error {}
+impl ScanError for Error {
+    fn position(&mut self, _: u64, _: usize) {}
+}
 
 pub struct Liner {}
 pub type Line<'input> = (&'input [u8], ());

@@ -5,7 +5,9 @@ use std::error::Error;
 use std::io::{self, BufRead, Read};
 use std::result::Result;
 
-pub trait ScanError: Error + From<io::Error> + Sized {}
+pub trait ScanError: Error + From<io::Error> + Sized {
+    fn position(&mut self, line: u64, column: usize);
+}
 
 type SplitResult<'input, TokenType, Error> = Result<
     (Option<(&'input [u8], TokenType)>, usize),
@@ -125,16 +127,20 @@ impl<R: Read, S: Splitter> Scanner<R, S> {
             if self.cap > self.pos || self.eof {
                 // TODO: I don't know how to make the borrow checker happy!
                 let data = unsafe { mem::transmute(&mut self.buf[self.pos..self.cap]) };
-                match self.splitter.split(data, self.eof)? {
-                    (None, 0) => {
+                match self.splitter.split(data, self.eof) {
+                    Err(mut e) => {
+                        e.position(self.line, self.column);
+                        return Err(e);
+                    }
+                    Ok((None, 0)) => {
                         // Request more data
                     }
-                    (None, amt) => {
+                    Ok((None, amt)) => {
                         // Ignore/skip this data
                         self.consume(amt);
                         continue;
                     }
-                    (tok, amt) => {
+                    Ok((tok, amt)) => {
                         self.consume(amt);
                         return Ok(tok);
                     }
