@@ -352,9 +352,17 @@ impl Splitter for Tokenizer {
             b'/' => if let Some(b) = data.get(1) {
                 if *b == b'*' {
                     // eat comment
-                    if let Some(i) = data.windows(2).position(|w| w == b"*/") {
-                        // FIXME slow
-                        return Ok((None, i + 2));
+                    let mut pb = 0;
+                    let mut end = None;
+                    for (i, b) in data.iter().enumerate().skip(2) {
+                        if *b == b'/' && pb == b'*' {
+                            end = Some(i);
+                            break;
+                        }
+                        pb = *b;
+                    }
+                    if let Some(i) = end {
+                        return Ok((None, i + 1));
                     } else if eof {
                         return Err(Error::UnterminatedBlockComment);
                     } // else ask more data until '*/'

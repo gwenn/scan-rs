@@ -203,11 +203,12 @@ fn main() {
                             i64::from_str_radix(str::from_utf8(&token[2..]).unwrap(), 16).is_ok()
                         );
                     } else {
-                        let raw = str::from_utf8(token).unwrap();
+                        /*let raw = str::from_utf8(token).unwrap();
                         let res = raw.parse::<i64>();
                         if res.is_err() {
                             eprintln!("Err: {} in {}", res.unwrap_err(), arg);
-                        }
+                        }*/
+                        debug_assert!(token.is_ascii_digit())
                     },
                     TokenType::Float => {
                         debug_assert!(str::from_utf8(token).unwrap().parse::<f64>().is_ok())
