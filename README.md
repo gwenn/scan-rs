@@ -8,3 +8,7 @@ But our `Scanner` is a `FallibleStreamingIterator`:
 Currently, there are one `unsafe` block in the `scan` method used to bypass the borrow checker.
 I don't know if it can be replaced with safe code.
 But I am quite confident that it is safe.
+
+Two concrete scanners are implemented:
+ - CSV lexer based on SQLite [extension](http://www.sqlite.org/src/artifact?ci=trunk&filename=src/shell.c) (use `rust-csv` instead),
+ - SQL lexer based on SQLite [tokenizer](http://www.sqlite.org/src/artifact?ci=trunk&filename=src/tokenize.c).
