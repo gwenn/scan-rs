@@ -2,6 +2,7 @@
 
 extern crate scan_rs as scan;
 
+use std::ascii::AsciiExt;
 use std::env;
 use std::fs::File;
 use std::i64;

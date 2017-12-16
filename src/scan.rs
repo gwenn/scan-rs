@@ -162,7 +162,7 @@ impl<R: Read, S: Splitter> Scanner<R, S> {
 
 impl<R: Read, S: Splitter> BufRead for Scanner<R, S> {
     fn fill_buf(&mut self) -> io::Result<&[u8]> {
-        debug!(target: "scanner", "fill_buf");
+        debug!(target: "scanner", "fill_buf: pos: {}, cap: {}, buf: {}", self.pos, self.cap, self.buf.len());
         // First, shift data to beginning of buffer if there's lots of empty space
         // or space is needed.
         if self.pos > 0 && (self.cap == self.buf.len() || self.pos > self.buf.len() / 2) {
@@ -215,7 +215,7 @@ impl<R: Read, S: Splitter> BufRead for Scanner<R, S> {
     /// Consume `amt` bytes of the buffer.
     fn consume(&mut self, amt: usize) {
         debug!(target: "scanner", "comsume({})", amt);
-        assert!(self.pos + amt <= self.cap);
+        debug_assert!(self.pos + amt <= self.cap);
         for byte in &self.buf[self.pos..self.pos + amt] {
             if *byte == b'\n' {
                 self.line += 1;
