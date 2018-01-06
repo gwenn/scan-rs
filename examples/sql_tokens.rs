@@ -15,7 +15,7 @@ fn main() {
     let args = env::args();
     for arg in args.skip(1) {
         let f = File::open(arg.clone()).unwrap();
-        let tokenizer = Tokenizer {};
+        let tokenizer = Tokenizer::new();
         let mut s = Scanner::new(f, tokenizer);
         loop {
             match s.scan() {

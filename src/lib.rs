@@ -7,7 +7,6 @@
 extern crate log;
 extern crate memchr;
 extern crate phf;
-extern crate unicase;
 
 use std::io::Error;
 use std::result::Result;

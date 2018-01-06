@@ -3,7 +3,6 @@ use std::result::Result;
 
 use memchr::memchr;
 use phf;
-use unicase::UniCase;
 
 mod error;
 
@@ -175,137 +174,147 @@ pub enum TokenType {
     Star,
 }
 
-// TODO how to make phf support unicase::Ascii ?
-static KEYWORDS: phf::Map<UniCase<&str>, TokenType> = phf_map! {
-    UniCase("ABORT") => TokenType::Abort,
-    UniCase("ACTION") => TokenType::Action,
-    UniCase("ADD") => TokenType::Add,
-    UniCase("AFTER") => TokenType::After,
-    UniCase("ALL") => TokenType::All,
-    UniCase("ALTER") => TokenType::Alter,
-    UniCase("ANALYZE") => TokenType::Analyze,
-    UniCase("AND") => TokenType::And,
-    UniCase("AS") => TokenType::As,
-    UniCase("ASC") => TokenType::Asc,
-    UniCase("ATTACH") => TokenType::Attach,
-    UniCase("AUTOINCREMENT") => TokenType::Autoincr,
-    UniCase("BEFORE") => TokenType::Before,
-    UniCase("BEGIN") => TokenType::Begin,
-    UniCase("BETWEEN") => TokenType::Between,
-    UniCase("BY") => TokenType::By,
-    UniCase("CASCADE") => TokenType::Cascade,
-    UniCase("CASE") => TokenType::Case,
-    UniCase("CAST") => TokenType::Cast,
-    UniCase("CHECK") => TokenType::Check,
-    UniCase("COLLATE") => TokenType::Collate,
-    UniCase("COLUMN") => TokenType::ColumnKw,
-    UniCase("COMMIT") => TokenType::Commit,
-    UniCase("CONFLICT") => TokenType::Conflict,
-    UniCase("CONSTRAINT") => TokenType::Constraint,
-    UniCase("CREATE") => TokenType::Create,
-    UniCase("CROSS") => TokenType::Cross,
-    UniCase("CURRENT_DATE") => TokenType::CurrentDate,
-    UniCase("CURRENT_TIME") => TokenType::CurrentTime,
-    UniCase("CURRENT_TIMESTAMP") => TokenType::CurrentTimestamp,
-    UniCase("DATABASE") => TokenType::Database,
-    UniCase("DEFAULT") => TokenType::Default,
-    UniCase("DEFERRABLE") => TokenType::Deferrable,
-    UniCase("DEFERRED") => TokenType::Deferred,
-    UniCase("DELETE") => TokenType::Delete,
-    UniCase("DESC") => TokenType::Desc,
-    UniCase("DETACH") => TokenType::Detach,
-    UniCase("DISTINCT") => TokenType::Distinct,
-    UniCase("DROP") => TokenType::Drop,
-    UniCase("EACH") => TokenType::Each,
-    UniCase("ELSE") => TokenType::Else,
-    UniCase("END") => TokenType::End,
-    UniCase("ESCAPE") => TokenType::Escape,
-    UniCase("EXCEPT") => TokenType::Except,
-    UniCase("EXCLUSIVE") => TokenType::Exclusive,
-    UniCase("EXISTS") => TokenType::Exists,
-    UniCase("EXPLAIN") => TokenType::Explain,
-    UniCase("FAIL") => TokenType::Fail,
-    UniCase("FOR") => TokenType::For,
-    UniCase("FOREIGN") => TokenType::Foreign,
-    UniCase("FROM") => TokenType::From,
-    UniCase("FULL") => TokenType::Full,
-    UniCase("GLOB") => TokenType::Glob,
-    UniCase("GROUP") => TokenType::Group,
-    UniCase("HAVING") => TokenType::Having,
-    UniCase("IF") => TokenType::If,
-    UniCase("IGNORE") => TokenType::Ignore,
-    UniCase("IMMEDIATE") => TokenType::Immediate,
-    UniCase("IN") => TokenType::In,
-    UniCase("INDEX") => TokenType::Index,
-    UniCase("INDEXED") => TokenType::Indexed,
-    UniCase("INITIALLY") => TokenType::Initially,
-    UniCase("INNER") => TokenType::Inner,
-    UniCase("INSERT") => TokenType::Insert,
-    UniCase("INSTEAD") => TokenType::Instead,
-    UniCase("INTERSECT") => TokenType::Intersect,
-    UniCase("INTO") => TokenType::Into,
-    UniCase("IS") => TokenType::Is,
-    UniCase("ISNULL") => TokenType::IsNull,
-    UniCase("JOIN") => TokenType::Join,
-    UniCase("KEY") => TokenType::Key,
-    UniCase("LEFT") => TokenType::Left,
-    UniCase("LIKE") => TokenType::Like,
-    UniCase("LIMIT") => TokenType::Limit,
-    UniCase("MATCH") => TokenType::Match,
-    UniCase("NATURAL") => TokenType::Natural,
-    UniCase("NO") => TokenType::No,
-    UniCase("NOT") => TokenType::Not,
-    UniCase("NOTNULL") => TokenType::NotNull,
-    UniCase("NULL") => TokenType::Null,
-    UniCase("OF") => TokenType::Of,
-    UniCase("OFFSET") => TokenType::Offset,
-    UniCase("ON") => TokenType::On,
-    UniCase("OR") => TokenType::Or,
-    UniCase("ORDER") => TokenType::Order,
-    UniCase("OUTER") => TokenType::Outer,
-    UniCase("PLAN") => TokenType::Plan,
-    UniCase("PRAGMA") => TokenType::Pragma,
-    UniCase("PRIMARY") => TokenType::Primary,
-    UniCase("QUERY") => TokenType::Query,
-    UniCase("RAISE") => TokenType::Raise,
-    UniCase("RECURSIVE") => TokenType::Recursive,
-    UniCase("REFERENCES") => TokenType::References,
-    UniCase("REGEXP") => TokenType::Regexp,
-    UniCase("REINDEX") => TokenType::Reindex,
-    UniCase("RELEASE") => TokenType::Release,
-    UniCase("RENAME") => TokenType::Rename,
-    UniCase("REPLACE") => TokenType::Replace,
-    UniCase("RESTRICT") => TokenType::Restrict,
-    UniCase("RIGHT") => TokenType::Right,
-    UniCase("ROLLBACK") => TokenType::Rollback,
-    UniCase("ROW") => TokenType::Row,
-    UniCase("SAVEPOINT") => TokenType::Savepoint,
-    UniCase("SELECT") => TokenType::Select,
-    UniCase("SET") => TokenType::Set,
-    UniCase("TABLE") => TokenType::Table,
-    UniCase("TEMP") => TokenType::Temp,
-    UniCase("TEMPORARY") => TokenType::Temp,
-    UniCase("THEN") => TokenType::Then,
-    UniCase("TO") => TokenType::To,
-    UniCase("TRANSACTION") => TokenType::Transaction,
-    UniCase("TRIGGER") => TokenType::Trigger,
-    UniCase("UNION") => TokenType::Union,
-    UniCase("UNIQUE") => TokenType::Unique,
-    UniCase("UPDATE") => TokenType::Update,
-    UniCase("USING") => TokenType::Using,
-    UniCase("VACUUM") => TokenType::Vacuum,
-    UniCase("VALUES") => TokenType::Values,
-    UniCase("VIEW") => TokenType::View,
-    UniCase("VIRTUAL") => TokenType::Virtual,
-    UniCase("WHEN") => TokenType::When,
-    UniCase("WHERE") => TokenType::Where,
-    UniCase("WITH") => TokenType::With,
-    UniCase("WITHOUT") => TokenType::Without
+static KEYWORDS: phf::Map<&[u8], TokenType> = phf_map! {
+    b"ABORT" => TokenType::Abort,
+    b"ACTION" => TokenType::Action,
+    b"ADD" => TokenType::Add,
+    b"AFTER" => TokenType::After,
+    b"ALL" => TokenType::All,
+    b"ALTER" => TokenType::Alter,
+    b"ANALYZE" => TokenType::Analyze,
+    b"AND" => TokenType::And,
+    b"AS" => TokenType::As,
+    b"ASC" => TokenType::Asc,
+    b"ATTACH" => TokenType::Attach,
+    b"AUTOINCREMENT" => TokenType::Autoincr,
+    b"BEFORE" => TokenType::Before,
+    b"BEGIN" => TokenType::Begin,
+    b"BETWEEN" => TokenType::Between,
+    b"BY" => TokenType::By,
+    b"CASCADE" => TokenType::Cascade,
+    b"CASE" => TokenType::Case,
+    b"CAST" => TokenType::Cast,
+    b"CHECK" => TokenType::Check,
+    b"COLLATE" => TokenType::Collate,
+    b"COLUMN" => TokenType::ColumnKw,
+    b"COMMIT" => TokenType::Commit,
+    b"CONFLICT" => TokenType::Conflict,
+    b"CONSTRAINT" => TokenType::Constraint,
+    b"CREATE" => TokenType::Create,
+    b"CROSS" => TokenType::Cross,
+    b"CURRENT_DATE" => TokenType::CurrentDate,
+    b"CURRENT_TIME" => TokenType::CurrentTime,
+    b"CURRENT_TIMESTAMP" => TokenType::CurrentTimestamp,
+    b"DATABASE" => TokenType::Database,
+    b"DEFAULT" => TokenType::Default,
+    b"DEFERRABLE" => TokenType::Deferrable,
+    b"DEFERRED" => TokenType::Deferred,
+    b"DELETE" => TokenType::Delete,
+    b"DESC" => TokenType::Desc,
+    b"DETACH" => TokenType::Detach,
+    b"DISTINCT" => TokenType::Distinct,
+    b"DROP" => TokenType::Drop,
+    b"EACH" => TokenType::Each,
+    b"ELSE" => TokenType::Else,
+    b"END" => TokenType::End,
+    b"ESCAPE" => TokenType::Escape,
+    b"EXCEPT" => TokenType::Except,
+    b"EXCLUSIVE" => TokenType::Exclusive,
+    b"EXISTS" => TokenType::Exists,
+    b"EXPLAIN" => TokenType::Explain,
+    b"FAIL" => TokenType::Fail,
+    b"FOR" => TokenType::For,
+    b"FOREIGN" => TokenType::Foreign,
+    b"FROM" => TokenType::From,
+    b"FULL" => TokenType::Full,
+    b"GLOB" => TokenType::Glob,
+    b"GROUP" => TokenType::Group,
+    b"HAVING" => TokenType::Having,
+    b"IF" => TokenType::If,
+    b"IGNORE" => TokenType::Ignore,
+    b"IMMEDIATE" => TokenType::Immediate,
+    b"IN" => TokenType::In,
+    b"INDEX" => TokenType::Index,
+    b"INDEXED" => TokenType::Indexed,
+    b"INITIALLY" => TokenType::Initially,
+    b"INNER" => TokenType::Inner,
+    b"INSERT" => TokenType::Insert,
+    b"INSTEAD" => TokenType::Instead,
+    b"INTERSECT" => TokenType::Intersect,
+    b"INTO" => TokenType::Into,
+    b"IS" => TokenType::Is,
+    b"ISNULL" => TokenType::IsNull,
+    b"JOIN" => TokenType::Join,
+    b"KEY" => TokenType::Key,
+    b"LEFT" => TokenType::Left,
+    b"LIKE" => TokenType::Like,
+    b"LIMIT" => TokenType::Limit,
+    b"MATCH" => TokenType::Match,
+    b"NATURAL" => TokenType::Natural,
+    b"NO" => TokenType::No,
+    b"NOT" => TokenType::Not,
+    b"NOTNULL" => TokenType::NotNull,
+    b"NULL" => TokenType::Null,
+    b"OF" => TokenType::Of,
+    b"OFFSET" => TokenType::Offset,
+    b"ON" => TokenType::On,
+    b"OR" => TokenType::Or,
+    b"ORDER" => TokenType::Order,
+    b"OUTER" => TokenType::Outer,
+    b"PLAN" => TokenType::Plan,
+    b"PRAGMA" => TokenType::Pragma,
+    b"PRIMARY" => TokenType::Primary,
+    b"QUERY" => TokenType::Query,
+    b"RAISE" => TokenType::Raise,
+    b"RECURSIVE" => TokenType::Recursive,
+    b"REFERENCES" => TokenType::References,
+    b"REGEXP" => TokenType::Regexp,
+    b"REINDEX" => TokenType::Reindex,
+    b"RELEASE" => TokenType::Release,
+    b"RENAME" => TokenType::Rename,
+    b"REPLACE" => TokenType::Replace,
+    b"RESTRICT" => TokenType::Restrict,
+    b"RIGHT" => TokenType::Right,
+    b"ROLLBACK" => TokenType::Rollback,
+    b"ROW" => TokenType::Row,
+    b"SAVEPOINT" => TokenType::Savepoint,
+    b"SELECT" => TokenType::Select,
+    b"SET" => TokenType::Set,
+    b"TABLE" => TokenType::Table,
+    b"TEMP" => TokenType::Temp,
+    b"TEMPORARY" => TokenType::Temp,
+    b"THEN" => TokenType::Then,
+    b"TO" => TokenType::To,
+    b"TRANSACTION" => TokenType::Transaction,
+    b"TRIGGER" => TokenType::Trigger,
+    b"UNION" => TokenType::Union,
+    b"UNIQUE" => TokenType::Unique,
+    b"UPDATE" => TokenType::Update,
+    b"USING" => TokenType::Using,
+    b"VACUUM" => TokenType::Vacuum,
+    b"VALUES" => TokenType::Values,
+    b"VIEW" => TokenType::View,
+    b"VIRTUAL" => TokenType::Virtual,
+    b"WHEN" => TokenType::When,
+    b"WHERE" => TokenType::Where,
+    b"WITH" => TokenType::With,
+    b"WITHOUT" => TokenType::Without
 };
+const MAX_KEYWORD_LEN: usize = 17;
 
 pub type Token<'input> = (&'input [u8], TokenType);
 
-pub struct Tokenizer {}
+pub struct Tokenizer {
+    uppercase_buffer: [u8; MAX_KEYWORD_LEN],
+}
+
+impl Tokenizer {
+    pub fn new() -> Tokenizer {
+        Tokenizer {
+            uppercase_buffer: [0; MAX_KEYWORD_LEN],
+        }
+    }
+}
 
 impl Splitter for Tokenizer {
     type Error = Error;
@@ -478,10 +487,10 @@ impl Splitter for Tokenizer {
                 if let Some(&b'\'') = data.get(1) {
                     return blob_literal(data, eof);
                 } else {
-                    return identifierish(data, eof);
+                    return self.identifierish(data, eof);
                 }
             } else {
-                return identifierish(data, eof);
+                return self.identifierish(data, eof);
             },
             _ => return Err(Error::UnrecognizedToken(None)),
         };
@@ -695,34 +704,38 @@ fn exponential_part<'input>(
     Ok((None, 0))
 }
 
-fn identifierish<'input>(
-    data: &'input [u8],
-    eof: bool,
-) -> Result<(Option<Token<'input>>, usize), Error> {
-    debug_assert!(is_identifier_start(data[0]));
-    // data[0] is_identifier_start => skip(1)
-    let end = data.iter()
-        .skip(1)
-        .position(|&b| !is_identifier_continue(b));
-    if end.is_some() || eof {
-        let i = match end {
-            Some(i) => i + 1,
-            _ => data.len(),
-        };
-        let word = &data[..i];
-        let tt = if word.len() > 2 && word.is_ascii() {
-            use std::str;
-            let s = unsafe { str::from_utf8_unchecked(word) };
-            // https://github.com/rust-lang/rust/issues/28853
-            let s = unsafe { ::std::mem::transmute::<_, &'static str>(s) };
-            KEYWORDS.get(&UniCase(s)).cloned().unwrap_or(TokenType::Id)
-        } else {
-            TokenType::Id
-        };
-        return Ok((Some((word, tt)), i));
+impl Tokenizer {
+    fn identifierish<'input>(
+        &mut self,
+        data: &'input [u8],
+        eof: bool,
+    ) -> Result<(Option<Token<'input>>, usize), Error> {
+        debug_assert!(is_identifier_start(data[0]));
+        // data[0] is_identifier_start => skip(1)
+        let end = data.iter()
+            .skip(1)
+            .position(|&b| !is_identifier_continue(b));
+        if end.is_some() || eof {
+            let i = match end {
+                Some(i) => i + 1,
+                _ => data.len(),
+            };
+            let word = &data[..i];
+            let tt = if word.len() >= 2 && word.len() <= MAX_KEYWORD_LEN && word.is_ascii() {
+                let mut buffer = &mut self.uppercase_buffer[..word.len()];
+                buffer.copy_from_slice(word);
+                buffer.make_ascii_uppercase();
+                // https://github.com/rust-lang/rust/issues/28853
+                let b = unsafe { ::std::mem::transmute::<_, &'static [u8]>(buffer) };
+                KEYWORDS.get(&b).cloned().unwrap_or(TokenType::Id)
+            } else {
+                TokenType::Id
+            };
+            return Ok((Some((word, tt)), i));
+        }
+        // else ask more data
+        Ok((None, 0))
     }
-    // else ask more data
-    Ok((None, 0))
 }
 
 fn is_identifier_start(b: u8) -> bool {

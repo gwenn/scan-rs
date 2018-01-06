@@ -13,12 +13,5 @@ license = "Apache-2.0/MIT"
 [dependencies]
 log = "0.4"
 memchr = "2.0"
-unicase = "1.4"
-
-[dependencies.phf]
-version = "0.7"
-features = ["unicase"]
-
-[dependencies.phf_macros]
-version = "0.7"
-features = ["unicase_support"]
+phf = "0.7"
+phf_macros = "0.7"

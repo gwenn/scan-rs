@@ -9,10 +9,8 @@ pub trait ScanError: Error + From<io::Error> + Sized {
     fn position(&mut self, line: u64, column: usize);
 }
 
-type SplitResult<'input, TokenType, Error> = Result<
-    (Option<(&'input [u8], TokenType)>, usize),
-    Error,
->;
+type SplitResult<'input, TokenType, Error> =
+    Result<(Option<(&'input [u8], TokenType)>, usize), Error>;
 
 pub trait Splitter: Sized {
     type Error: ScanError;
