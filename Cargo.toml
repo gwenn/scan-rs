@@ -8,7 +8,7 @@ repository = "https://github.com/gwenn/scan-rs"
 #readme = "README.md"
 #categories = ["parser-implementations"]
 keywords = ["scanner", "tokenizer"]
-license = "Apache-2.0/MIT"
+license = "Unlicense/MIT"
 
 [dependencies]
 log = "0.4"
