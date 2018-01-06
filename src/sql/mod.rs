@@ -1,4 +1,5 @@
 //! Adaptation/port of [`SQLite` tokenizer](http://www.sqlite.org/src/artifact?ci=trunk&filename=src/tokenize.c)
+use std::ascii::AsciiExt;
 use std::result::Result;
 
 use memchr::memchr;
@@ -722,11 +723,16 @@ impl Tokenizer {
             };
             let word = &data[..i];
             let tt = if word.len() >= 2 && word.len() <= MAX_KEYWORD_LEN && word.is_ascii() {
-                let mut buffer = &mut self.uppercase_buffer[..word.len()];
-                buffer.copy_from_slice(word);
-                buffer.make_ascii_uppercase();
+                let upcase = if word.is_ascii_uppercase() {
+                    word
+                } else {
+                    let mut buffer = &mut self.uppercase_buffer[..word.len()];
+                    buffer.copy_from_slice(word);
+                    buffer.make_ascii_uppercase();
+                    buffer
+                };
                 // https://github.com/rust-lang/rust/issues/28853
-                let b = unsafe { ::std::mem::transmute::<_, &'static [u8]>(buffer) };
+                let b = unsafe { ::std::mem::transmute::<_, &'static [u8]>(upcase) };
                 KEYWORDS.get(&b).cloned().unwrap_or(TokenType::Id)
             } else {
                 TokenType::Id
