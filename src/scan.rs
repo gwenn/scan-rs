@@ -1,7 +1,7 @@
 //! Adaptation/port of [Go scanner](http://tip.golang.org/pkg/bufio/#Scanner).
 use std::convert::From;
-use std::fmt;
 use std::error::Error;
+use std::fmt;
 use std::io::{self, BufRead, Read};
 use std::result::Result;
 

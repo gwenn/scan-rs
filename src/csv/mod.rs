@@ -1,9 +1,9 @@
 //! Adaptation/port of
 //! [`SQLite` CSV parser](http://www.sqlite.org/src/artifact?ci=trunk&filename=src/shell.c).
 //! See `csv_read_one_field` function in `SQLite3` shell sources.
+use memchr::memchr2;
 use std::ops::Range;
 use std::result::Result;
-use memchr::memchr2;
 
 mod error;
 

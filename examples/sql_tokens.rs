@@ -2,14 +2,14 @@
 
 extern crate scan_rs as scan;
 
+use scan::Scanner;
+use scan::sql::TokenType;
+use scan::sql::Tokenizer;
 use std::ascii::AsciiExt;
 use std::env;
 use std::fs::File;
 use std::i64;
 use std::str;
-use scan::Scanner;
-use scan::sql::Tokenizer;
-use scan::sql::TokenType;
 
 fn main() {
     let args = env::args();

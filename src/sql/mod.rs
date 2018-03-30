@@ -7,8 +7,8 @@ use phf;
 
 mod error;
 
-pub use sql::error::Error;
 pub use scan::Splitter;
+pub use sql::error::Error;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum TokenType {

@@ -8,13 +8,13 @@ extern crate log;
 extern crate memchr;
 extern crate phf;
 
+use memchr::memchr;
 use std::io::Error;
 use std::result::Result;
-use memchr::memchr;
 
 pub mod csv;
-pub mod sql;
 mod scan;
+pub mod sql;
 
 pub use scan::{ScanError, Scanner, Splitter};
 
