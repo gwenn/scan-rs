@@ -70,9 +70,9 @@ impl<R: Read, S: Splitter> Scanner<R, S> {
             inner.initializer().initialize(&mut buf);
         }
         Scanner {
-            inner: inner,
-            splitter: splitter,
-            buf: buf,
+            inner,
+            splitter,
+            buf,
             pos: 0,
             cap: 0,
             eof: false,
@@ -95,7 +95,7 @@ impl<R: Read, S: Splitter> Scanner<R, S> {
         &self.splitter
     }
 
-    /// Reset the parser such that it behaves as if it had never been used.
+    /// Reset the scanner such that it behaves as if it had never been used.
     pub fn reset(&mut self, inner: R) {
         self.inner = inner;
         self.pos = 0;
