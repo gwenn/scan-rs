@@ -32,7 +32,7 @@ pub struct Reader {
     sep: u8,
     /// specify if values may be quoted (when they contain separator or newline)
     quoted: bool,
-    // true when the most recent field has been terminated by a newline (not a separator).
+    /// true when the most recent field has been terminated by a newline (not a separator).
     eor: bool,
     /// trim spaces (only on unquoted values). Break rfc4180 rule: "Spaces are considered part of
     /// a field and should not be ignored."
