@@ -2,9 +2,9 @@
 
 extern crate scan_rs as scan;
 
-use scan::Scanner;
 use scan::sql::TokenType;
 use scan::sql::Tokenizer;
+use scan::Scanner;
 use std::ascii::AsciiExt;
 use std::env;
 use std::fs::File;

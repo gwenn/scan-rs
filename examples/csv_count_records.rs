@@ -1,7 +1,7 @@
 extern crate scan_rs as scan;
 
-use scan::Scanner;
 use scan::csv::Reader;
+use scan::Scanner;
 use std::env;
 use std::fs::File;
 
