@@ -5,7 +5,6 @@ extern crate scan_rs as scan;
 use scan::sql::TokenType;
 use scan::sql::Tokenizer;
 use scan::Scanner;
-use std::ascii::AsciiExt;
 use std::env;
 use std::fs::File;
 use std::i64;
@@ -194,10 +193,11 @@ fn main() {
                     //TokenType::StringLiteral => debug_assert!(),
                     //TokenType::Id => debug_assert!(),
                     //TokenType::Variable => debug_assert!(),
-                    TokenType::Blob => {
-                        debug_assert!(token.len() % 2 == 0 && token.is_ascii_hexdigit())
-                    }
-                    TokenType::Integer => if token.len() > 2 && token[0] == b'0'
+                    TokenType::Blob => debug_assert!(
+                        token.len() % 2 == 0 && token.iter().all(|b| b.is_ascii_hexdigit())
+                    ),
+                    TokenType::Integer => if token.len() > 2
+                        && token[0] == b'0'
                         && (token[1] == b'x' || token[1] == b'X')
                     {
                         debug_assert!(
@@ -209,7 +209,7 @@ fn main() {
                         if res.is_err() {
                             eprintln!("Err: {} in {}", res.unwrap_err(), arg);
                         }*/
-                        debug_assert!(token.is_ascii_digit())
+                        debug_assert!(token.iter().all(|b| b.is_ascii_digit()))
                     },
                     TokenType::Float => {
                         debug_assert!(str::from_utf8(token).unwrap().parse::<f64>().is_ok())

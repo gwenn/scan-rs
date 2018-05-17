@@ -1,5 +1,4 @@
 //! Adaptation/port of [`SQLite` tokenizer](http://www.sqlite.org/src/artifact?ci=trunk&filename=src/tokenize.c)
-use std::ascii::AsciiExt;
 use std::result::Result;
 
 use memchr::memchr;
@@ -464,7 +463,8 @@ impl Splitter for Tokenizer {
                 };
             }
             b'$' | b'@' | b'#' | b':' => {
-                match data.iter()
+                match data
+                    .iter()
                     .skip(1)
                     .position(|&b| !is_identifier_continue(b))
                 {
@@ -573,7 +573,8 @@ fn blob_literal<'input>(
 ) -> Result<(Option<Token<'input>>, usize), Error> {
     debug_assert!(data[0] == b'x' || data[0] == b'X');
     debug_assert_eq!(data[1], b'\'');
-    if let Some((i, b)) = data.iter()
+    if let Some((i, b)) = data
+        .iter()
         .enumerate()
         .skip(2)
         .find(|&(_, &b)| !b.is_ascii_hexdigit())
@@ -603,7 +604,8 @@ fn number<'input>(data: &'input [u8], eof: bool) -> Result<(Option<Token<'input>
             return Ok((None, 0));
         }
     }
-    if let Some((i, b)) = data.iter()
+    if let Some((i, b)) = data
+        .iter()
         .enumerate()
         .skip(1)
         .find(|&(_, &b)| !b.is_ascii_digit())
@@ -629,7 +631,8 @@ fn hex_integer<'input>(
 ) -> Result<(Option<Token<'input>>, usize), Error> {
     debug_assert_eq!(data[0], b'0');
     debug_assert!(data[1] == b'x' || data[1] == b'X');
-    if let Some((i, b)) = data.iter()
+    if let Some((i, b)) = data
+        .iter()
         .enumerate()
         .skip(2)
         .find(|&(_, &b)| !b.is_ascii_hexdigit())
@@ -656,7 +659,8 @@ fn fractional_part<'input>(
     i: usize,
 ) -> Result<(Option<Token<'input>>, usize), Error> {
     debug_assert_eq!(data[i], b'.');
-    if let Some((i, b)) = data.iter()
+    if let Some((i, b)) = data
+        .iter()
         .enumerate()
         .skip(i + 1)
         .find(|&(_, &b)| !b.is_ascii_digit())
@@ -683,7 +687,8 @@ fn exponential_part<'input>(
     // data[i] == 'e'|'E'
     if let Some(b) = data.get(i + 1) {
         let i = if *b == b'+' || *b == b'-' { i + 1 } else { i };
-        if let Some((i, b)) = data.iter()
+        if let Some((i, b)) = data
+            .iter()
             .enumerate()
             .skip(i + 1)
             .find(|&(_, &b)| !b.is_ascii_digit())
@@ -713,7 +718,8 @@ impl Tokenizer {
     ) -> Result<(Option<Token<'input>>, usize), Error> {
         debug_assert!(is_identifier_start(data[0]));
         // data[0] is_identifier_start => skip(1)
-        let end = data.iter()
+        let end = data
+            .iter()
             .skip(1)
             .position(|&b| !is_identifier_continue(b));
         if end.is_some() || eof {
@@ -723,7 +729,7 @@ impl Tokenizer {
             };
             let word = &data[..i];
             let tt = if word.len() >= 2 && word.len() <= MAX_KEYWORD_LEN && word.is_ascii() {
-                let upcase = if word.is_ascii_uppercase() {
+                let upcase = if word.iter().all(|b| b.is_ascii_uppercase()) {
                     word
                 } else {
                     let mut buffer = &mut self.uppercase_buffer[..word.len()];
@@ -749,6 +755,10 @@ fn is_identifier_start(b: u8) -> bool {
 }
 
 fn is_identifier_continue(b: u8) -> bool {
-    b == b'$' || (b >= b'0' && b <= b'9') || (b >= b'A' && b <= b'Z') || b == b'_'
-        || (b >= b'a' && b <= b'z') || b > b'\x7F'
+    b == b'$'
+        || (b >= b'0' && b <= b'9')
+        || (b >= b'A' && b <= b'Z')
+        || b == b'_'
+        || (b >= b'a' && b <= b'z')
+        || b > b'\x7F'
 }
