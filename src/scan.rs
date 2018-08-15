@@ -63,6 +63,7 @@ impl<R: Read, S: Splitter> Scanner<R, S> {
     pub fn new(inner: R, splitter: S) -> Scanner<R, S> {
         Self::with_capacity(inner, splitter, 4096)
     }
+
     fn with_capacity(inner: R, splitter: S, capacity: usize) -> Scanner<R, S> {
         let mut buf = Vec::with_capacity(capacity);
         unsafe {

@@ -22,9 +22,9 @@ pub enum FieldType {
 pub type Token<'input> = (&'input [u8], FieldType);
 
 /// Reader provides an interface for reading CSV data
-/// (compatible with rfc4180 and extended with the option of having a separator other than ",").
-/// Successive calls to the `scan` method will step through the 'fields',
-/// skipping the separator/newline between the fields.
+/// (compatible with rfc4180 and extended with the option of having a separator
+/// other than ","). Successive calls to the `scan` method will step through
+/// the 'fields', skipping the separator/newline between the fields.
 /// The `end_of_record` method tells when a field is terminated by a line break.
 #[derive(Default)]
 pub struct Reader {
@@ -32,23 +32,25 @@ pub struct Reader {
     sep: u8,
     /// specify if values may be quoted (when they contain separator or newline)
     quoted: bool,
-    /// true when the most recent field has been terminated by a newline (not a separator).
+    /// true when the most recent field has been terminated by a newline (not a
+    /// separator).
     eor: bool,
-    /// trim spaces (only on unquoted values). Break rfc4180 rule: "Spaces are considered part of
-    /// a field and should not be ignored."
+    /// trim spaces (only on unquoted values). Break rfc4180 rule: "Spaces are
+    /// considered part of a field and should not be ignored."
     pub trim: bool,
-    /// character marking the start of a line comment. When specified (not 0), line comment appears
-    /// as empty line.
+    /// character marking the start of a line comment. When specified (not 0),
+    /// line comment appears as empty line.
     pub comment: u8,
-    /// specify if quoted values may contains unescaped quote not followed by a separator
-    /// or a newline
+    /// specify if quoted values may contains unescaped quote not followed by a
+    /// separator or a newline
     pub lazy: bool,
-    // Index (first is 1) by header
-    //pub headers: HashMap<String, u32>
+    /* Index (first is 1) by header
+     *pub headers: HashMap<String, u32> */
 }
 
 impl Reader {
-    /// Creates a "standard" CSV reader (separator is comma and quoted mode active)
+    /// Creates a "standard" CSV reader (separator is comma and quoted mode
+    /// active)
     pub fn new() -> Reader {
         Reader {
             sep: b',',
@@ -59,7 +61,9 @@ impl Reader {
             lazy: false,
         }
     }
-    /// When `quoted` is `false`, values must not contain a separator or newline.
+
+    /// When `quoted` is `false`, values must not contain a separator or
+    /// newline.
     pub fn custom(sep: u8, quoted: bool) -> Reader {
         let mut r = Reader::new();
         r.sep = sep;

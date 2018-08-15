@@ -45,6 +45,7 @@ impl log::Log for Logger {
             eprintln!("{} - {}", record.level(), record.args());
         }
     }
+
     fn flush(&self) {}
 }
 
