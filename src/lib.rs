@@ -1,4 +1,3 @@
-#![feature(ascii_ctype)]
 #![feature(read_initializer)]
 #![feature(plugin)]
 #![plugin(phf_macros)]

@@ -9,9 +9,12 @@ pub trait ScanError: Error + From<io::Error> + Sized {
     fn position(&mut self, line: u64, column: usize);
 }
 
+/// The `(&[u8], TokenType)` is the token.
+/// And the `usize` is the amount of bytes to consume.
 type SplitResult<'input, TokenType, Error> =
     Result<(Option<(&'input [u8], TokenType)>, usize), Error>;
 
+/// Split function used to tokenize the input
 pub trait Splitter: Sized {
     type Error: ScanError;
     //type Item: ?Sized;

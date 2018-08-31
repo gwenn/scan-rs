@@ -44,8 +44,8 @@ pub struct Reader {
     /// specify if quoted values may contains unescaped quote not followed by a
     /// separator or a newline
     pub lazy: bool,
-    /* Index (first is 1) by header
-     *pub headers: HashMap<String, u32> */
+    /* Index (first is 1) by header */
+    /* pub headers: HashMap<String, u32> */
 }
 
 impl Reader {

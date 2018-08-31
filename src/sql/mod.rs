@@ -454,7 +454,7 @@ impl Splitter for Tokenizer {
                 match data.iter().skip(1).position(|&b| !b.is_ascii_digit()) {
                     Some(i) => {
                         // do not include the '?' in the token
-                        return Ok((Some((&data[1..i + 1], TokenType::Variable)), i + 1));
+                        return Ok((Some((&data[1..=i], TokenType::Variable)), i + 1));
                     }
                     None if eof => return Ok((Some((&data[1..], TokenType::Variable)), data.len())),
                     _ => {
@@ -471,7 +471,7 @@ impl Splitter for Tokenizer {
                     Some(0) => return Err(Error::BadVariableName(None)),
                     Some(i) => {
                         // '$' is included as part of the name
-                        return Ok((Some((&data[..i + 1], TokenType::Variable)), i + 1));
+                        return Ok((Some((&data[..=i], TokenType::Variable)), i + 1));
                     }
                     None if eof => {
                         if data.len() == 1 {
