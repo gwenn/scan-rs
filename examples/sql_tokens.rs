@@ -1,5 +1,3 @@
-#![feature(ascii_ctype)]
-
 extern crate scan_rs as scan;
 
 use scan::sql::TokenType;
