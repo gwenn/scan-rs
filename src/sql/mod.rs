@@ -339,108 +339,124 @@ impl Splitter for Tokenizer {
             ));
         }
         match data[0] {
-            b'-' => if let Some(b) = data.get(1) {
-                if *b == b'-' {
-                    // eat comment
-                    if let Some(i) = memchr(b'\n', data) {
-                        return Ok((None, i + 1));
-                    } else if eof {
-                        return Ok((None, data.len()));
-                    } // else ask more data until '\n'
-                } else {
+            b'-' => {
+                if let Some(b) = data.get(1) {
+                    if *b == b'-' {
+                        // eat comment
+                        if let Some(i) = memchr(b'\n', data) {
+                            return Ok((None, i + 1));
+                        } else if eof {
+                            return Ok((None, data.len()));
+                        } // else ask more data until '\n'
+                    } else {
+                        return Ok((Some((&data[..1], TokenType::Minus)), 1));
+                    }
+                } else if eof {
                     return Ok((Some((&data[..1], TokenType::Minus)), 1));
                 }
-            } else if eof {
-                return Ok((Some((&data[..1], TokenType::Minus)), 1));
-            }, /* else ask more data */
+            } /* else ask more data */
             b'(' => return Ok((Some((&data[..1], TokenType::LeftParen)), 1)),
             b')' => return Ok((Some((&data[..1], TokenType::RightParen)), 1)),
             b';' => return Ok((Some((&data[..1], TokenType::Semi)), 1)),
             b'+' => return Ok((Some((&data[..1], TokenType::Plus)), 1)),
             b'*' => return Ok((Some((&data[..1], TokenType::Star)), 1)),
-            b'/' => if let Some(b) = data.get(1) {
-                if *b == b'*' {
-                    // eat comment
-                    let mut pb = 0;
-                    let mut end = None;
-                    for (i, b) in data.iter().enumerate().skip(2) {
-                        if *b == b'/' && pb == b'*' {
-                            end = Some(i);
-                            break;
+            b'/' => {
+                if let Some(b) = data.get(1) {
+                    if *b == b'*' {
+                        // eat comment
+                        let mut pb = 0;
+                        let mut end = None;
+                        for (i, b) in data.iter().enumerate().skip(2) {
+                            if *b == b'/' && pb == b'*' {
+                                end = Some(i);
+                                break;
+                            }
+                            pb = *b;
                         }
-                        pb = *b;
+                        if let Some(i) = end {
+                            return Ok((None, i + 1));
+                        } else if eof {
+                            return Err(Error::UnterminatedBlockComment(None));
+                        } // else ask more data until '*/'
+                    } else {
+                        return Ok((Some((&data[..1], TokenType::Slash)), 1));
                     }
-                    if let Some(i) = end {
-                        return Ok((None, i + 1));
-                    } else if eof {
-                        return Err(Error::UnterminatedBlockComment(None));
-                    } // else ask more data until '*/'
-                } else {
+                } else if eof {
                     return Ok((Some((&data[..1], TokenType::Slash)), 1));
                 }
-            } else if eof {
-                return Ok((Some((&data[..1], TokenType::Slash)), 1));
-            },
+            }
             b'%' => return Ok((Some((&data[..1], TokenType::Reminder)), 1)),
-            b'=' => if let Some(b) = data.get(1) {
-                return Ok(if *b == b'=' {
-                    (Some((&data[..2], TokenType::Equals)), 2)
-                } else {
-                    (Some((&data[..1], TokenType::Equals)), 1)
-                });
-            } else if eof {
-                return Ok((Some((&data[..1], TokenType::Equals)), 1));
-            }, /* else ask more data to fuse '==' or not */
-            b'<' => if let Some(b) = data.get(1) {
-                return Ok(match *b {
-                    b'=' => (Some((&data[..2], TokenType::LessEquals)), 2),
-                    b'>' => (Some((&data[..2], TokenType::NotEquals)), 2),
-                    b'<' => (Some((&data[..2], TokenType::LeftShift)), 2),
-                    _ => (Some((&data[..1], TokenType::LessThan)), 1),
-                });
-            } else if eof {
-                return Ok((Some((&data[..1], TokenType::LessThan)), 1));
-            }, /* else ask more data */
-            b'>' => if let Some(b) = data.get(1) {
-                return Ok(match *b {
-                    b'=' => (Some((&data[..2], TokenType::GreaterEquals)), 2),
-                    b'>' => (Some((&data[..2], TokenType::RightShift)), 2),
-                    _ => (Some((&data[..1], TokenType::GreaterThan)), 1),
-                });
-            } else if eof {
-                return Ok((Some((&data[..1], TokenType::GreaterThan)), 1));
-            }, /* else ask more data */
-            b'!' => if let Some(b) = data.get(1) {
-                if *b == b'=' {
-                    return Ok((Some((&data[..2], TokenType::NotEquals)), 2));
-                } else {
+            b'=' => {
+                if let Some(b) = data.get(1) {
+                    return Ok(if *b == b'=' {
+                        (Some((&data[..2], TokenType::Equals)), 2)
+                    } else {
+                        (Some((&data[..1], TokenType::Equals)), 1)
+                    });
+                } else if eof {
+                    return Ok((Some((&data[..1], TokenType::Equals)), 1));
+                }
+            } /* else ask more data to fuse '==' or not */
+            b'<' => {
+                if let Some(b) = data.get(1) {
+                    return Ok(match *b {
+                        b'=' => (Some((&data[..2], TokenType::LessEquals)), 2),
+                        b'>' => (Some((&data[..2], TokenType::NotEquals)), 2),
+                        b'<' => (Some((&data[..2], TokenType::LeftShift)), 2),
+                        _ => (Some((&data[..1], TokenType::LessThan)), 1),
+                    });
+                } else if eof {
+                    return Ok((Some((&data[..1], TokenType::LessThan)), 1));
+                }
+            } /* else ask more data */
+            b'>' => {
+                if let Some(b) = data.get(1) {
+                    return Ok(match *b {
+                        b'=' => (Some((&data[..2], TokenType::GreaterEquals)), 2),
+                        b'>' => (Some((&data[..2], TokenType::RightShift)), 2),
+                        _ => (Some((&data[..1], TokenType::GreaterThan)), 1),
+                    });
+                } else if eof {
+                    return Ok((Some((&data[..1], TokenType::GreaterThan)), 1));
+                }
+            } /* else ask more data */
+            b'!' => {
+                if let Some(b) = data.get(1) {
+                    if *b == b'=' {
+                        return Ok((Some((&data[..2], TokenType::NotEquals)), 2));
+                    } else {
+                        return Err(Error::ExpectedEqualsSign(None));
+                    }
+                } else if eof {
                     return Err(Error::ExpectedEqualsSign(None));
                 }
-            } else if eof {
-                return Err(Error::ExpectedEqualsSign(None));
-            }, /* else ask more data */
-            b'|' => if let Some(b) = data.get(1) {
-                return Ok(if *b == b'|' {
-                    (Some((&data[..2], TokenType::Concat)), 2)
-                } else {
-                    (Some((&data[..1], TokenType::BitOr)), 1)
-                });
-            } else if eof {
-                return Ok((Some((&data[..1], TokenType::BitOr)), 1));
-            }, /* else ask more data */
+            } /* else ask more data */
+            b'|' => {
+                if let Some(b) = data.get(1) {
+                    return Ok(if *b == b'|' {
+                        (Some((&data[..2], TokenType::Concat)), 2)
+                    } else {
+                        (Some((&data[..1], TokenType::BitOr)), 1)
+                    });
+                } else if eof {
+                    return Ok((Some((&data[..1], TokenType::BitOr)), 1));
+                }
+            } /* else ask more data */
             b',' => return Ok((Some((&data[..1], TokenType::Comma)), 1)),
             b'&' => return Ok((Some((&data[..1], TokenType::BitAnd)), 1)),
             b'~' => return Ok((Some((&data[..1], TokenType::BitNot)), 1)),
             quote @ b'`' | quote @ b'\'' | quote @ b'"' => return literal(data, eof, quote),
-            b'.' => if let Some(b) = data.get(1) {
-                if b.is_ascii_digit() {
-                    return fractional_part(data, eof, 0);
+            b'.' => {
+                if let Some(b) = data.get(1) {
+                    if b.is_ascii_digit() {
+                        return fractional_part(data, eof, 0);
+                    } else if eof {
+                        return Ok((Some((&data[..1], TokenType::Dot)), 1));
+                    }
                 } else if eof {
                     return Ok((Some((&data[..1], TokenType::Dot)), 1));
                 }
-            } else if eof {
-                return Ok((Some((&data[..1], TokenType::Dot)), 1));
-            }, /* else ask more data */
+            } /* else ask more data */
             b'0'...b'9' => return number(data, eof),
             b'[' => {
                 if let Some(i) = memchr(b']', data) {
@@ -484,15 +500,17 @@ impl Splitter for Tokenizer {
                     }
                 };
             }
-            b if is_identifier_start(b) => if b == b'x' || b == b'X' {
-                if let Some(&b'\'') = data.get(1) {
-                    return blob_literal(data, eof);
+            b if is_identifier_start(b) => {
+                if b == b'x' || b == b'X' {
+                    if let Some(&b'\'') = data.get(1) {
+                        return blob_literal(data, eof);
+                    } else {
+                        return self.identifierish(data, eof);
+                    }
                 } else {
                     return self.identifierish(data, eof);
                 }
-            } else {
-                return self.identifierish(data, eof);
-            },
+            }
             _ => return Err(Error::UnrecognizedToken(None)),
         };
         // Request more data.

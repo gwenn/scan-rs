@@ -194,21 +194,24 @@ fn main() {
                     TokenType::Blob => debug_assert!(
                         token.len() % 2 == 0 && token.iter().all(|b| b.is_ascii_hexdigit())
                     ),
-                    TokenType::Integer => if token.len() > 2
-                        && token[0] == b'0'
-                        && (token[1] == b'x' || token[1] == b'X')
-                    {
-                        debug_assert!(
-                            i64::from_str_radix(str::from_utf8(&token[2..]).unwrap(), 16).is_ok()
-                        );
-                    } else {
-                        /*let raw = str::from_utf8(token).unwrap();
-                        let res = raw.parse::<i64>();
-                        if res.is_err() {
-                            eprintln!("Err: {} in {}", res.unwrap_err(), arg);
-                        }*/
-                        debug_assert!(token.iter().all(|b| b.is_ascii_digit()))
-                    },
+                    TokenType::Integer => {
+                        if token.len() > 2
+                            && token[0] == b'0'
+                            && (token[1] == b'x' || token[1] == b'X')
+                        {
+                            debug_assert!(
+                                i64::from_str_radix(str::from_utf8(&token[2..]).unwrap(), 16)
+                                    .is_ok()
+                            );
+                        } else {
+                            /*let raw = str::from_utf8(token).unwrap();
+                            let res = raw.parse::<i64>();
+                            if res.is_err() {
+                                eprintln!("Err: {} in {}", res.unwrap_err(), arg);
+                            }*/
+                            debug_assert!(token.iter().all(|b| b.is_ascii_digit()))
+                        }
+                    }
                     TokenType::Float => {
                         debug_assert!(str::from_utf8(token).unwrap().parse::<f64>().is_ok())
                     }
